@@ -7,6 +7,7 @@ from backend.app.models.mesh_model import MeshData, Triangle, Vertex3D
 from backend.app.models.scene_model import SceneConfig, SceneResponse
 from backend.app.services.face_mesh_detector import FaceMeshDetector
 from backend.app.services.image_input_service import ImageInputService
+from backend.app.services.landmark_expansion_service import LandmarkExpansionService
 from backend.app.services.projection_service import ProjectionService
 
 router = APIRouter(prefix="/face", tags=["face"])
@@ -90,6 +91,7 @@ async def upload_image(file: UploadFile = File(...)) -> ImageInfoResponse:
 async def detect_landmarks(file: UploadFile = File(...)) -> FaceLandmarksResponse:
     image_service = ImageInputService()
     detector = FaceMeshDetector()
+    expansion_service = LandmarkExpansionService()
 
     if not file.filename:
         raise HTTPException(status_code=400, detail="El archivo no tiene nombre")
@@ -118,11 +120,13 @@ async def detect_landmarks(file: UploadFile = File(...)) -> FaceLandmarksRespons
             detail="No se detectó ningún rostro en la imagen"
         )
 
+    expanded_landmarks = expansion_service.expand(landmarks)
+
     return FaceLandmarksResponse(
         filename=file.filename,
         image_width=width,
         image_height=height,
-        landmark_count=len(landmarks),
-        landmarks=landmarks,
-        message="Landmarks faciales detectados correctamente"
+        landmark_count=len(expanded_landmarks),
+        landmarks=expanded_landmarks,
+        message="Landmarks faciales detectados y expandidos correctamente"
     )

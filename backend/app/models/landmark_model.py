@@ -7,6 +7,7 @@ class FaceLandmark(BaseModel):
     x: float
     y: float
     z: float
+    source: str = "detected"
 
 
 class FaceLandmarksResponse(BaseModel):

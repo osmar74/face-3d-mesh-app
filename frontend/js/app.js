@@ -107,17 +107,23 @@ function clearCanvas() {
     landmarkContext.clearRect(0, 0, landmarkCanvas.width, landmarkCanvas.height);
 }
 
+function drawLandmarks(landmarks) {
+    for (const point of landmarks) {
+        landmarkContext.beginPath();
+
+        if (point.source === "synthetic") {
+            landmarkContext.fillStyle = "#f59e0b";
+            landmarkContext.arc(point.x, point.y, 2.5, 0, Math.PI * 2);
+        } else {
+            landmarkContext.fillStyle = "#22c55e";
+            landmarkContext.arc(point.x, point.y, 1.5, 0, Math.PI * 2);
+        }
+
+        landmarkContext.fill();
+    }
+}
+
 function drawImageOnCanvas(image) {
     landmarkContext.clearRect(0, 0, landmarkCanvas.width, landmarkCanvas.height);
     landmarkContext.drawImage(image, 0, 0, landmarkCanvas.width, landmarkCanvas.height);
-}
-
-function drawLandmarks(landmarks) {
-    landmarkContext.fillStyle = "#22c55e";
-
-    for (const point of landmarks) {
-        landmarkContext.beginPath();
-        landmarkContext.arc(point.x, point.y, 1.5, 0, Math.PI * 2);
-        landmarkContext.fill();
-    }
 }
