@@ -35,3 +35,21 @@ async function detectLandmarksInBackend(file) {
 
     return data;
 }
+
+async function triangulateMesh(file) {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch(`${API_BASE_URL}/face/triangulate`, {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.detail || "Error triangulando");
+    }
+
+    return data;
+}

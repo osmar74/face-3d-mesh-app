@@ -13,6 +13,12 @@ class Vertex2D(BaseModel):
     y: float
 
 
+class Vertex(BaseModel):
+    x: float
+    y: float
+    z: float
+
+
 class Triangle(BaseModel):
     a: int
     b: int
@@ -23,3 +29,9 @@ class MeshData(BaseModel):
     vertices: List[Vertex3D] = Field(default_factory=list)
     projected_vertices: List[Vertex2D] = Field(default_factory=list)
     triangles: List[Triangle] = Field(default_factory=list)
+
+
+class MeshResponse(BaseModel):
+    vertices: List[Vertex] = Field(default_factory=list)
+    triangles: List[Triangle] = Field(default_factory=list)
+    message: str

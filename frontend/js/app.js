@@ -67,20 +67,17 @@ detectButton.addEventListener("click", async () => {
         return;
     }
 
-    uploadStatus.textContent = "Detectando landmarks faciales...";
+    uploadStatus.textContent = "Generando malla...";
 
     try {
-        const result = await detectLandmarksInBackend(selectedFile);
+        const result = await triangulateMesh(selectedFile);
 
-        uploadStatus.textContent =
-            `Landmarks detectados correctamente.\nCantidad: ${result.landmark_count}`;
+        uploadStatus.textContent = "Malla generada correctamente.";
 
         backendResponse.textContent = JSON.stringify(
             {
-                filename: result.filename,
-                image_width: result.image_width,
-                image_height: result.image_height,
-                landmark_count: result.landmark_count,
+                vertices: result.vertices.length,
+                triangles: result.triangles.length,
                 message: result.message
             },
             null,
@@ -90,10 +87,11 @@ detectButton.addEventListener("click", async () => {
         if (loadedImage) {
             prepareCanvas(loadedImage.width, loadedImage.height);
             drawImageOnCanvas(loadedImage);
-            drawLandmarks(result.landmarks);
+            drawTriangles(result.vertices, result.triangles);
         }
+
     } catch (error) {
-        uploadStatus.textContent = "Error en detección facial.";
+        uploadStatus.textContent = "Error en triangulación.";
         backendResponse.textContent = error.message;
     }
 });
@@ -126,4 +124,22 @@ function drawLandmarks(landmarks) {
 function drawImageOnCanvas(image) {
     landmarkContext.clearRect(0, 0, landmarkCanvas.width, landmarkCanvas.height);
     landmarkContext.drawImage(image, 0, 0, landmarkCanvas.width, landmarkCanvas.height);
+}
+
+function drawTriangles(vertices, triangles) {
+    landmarkContext.strokeStyle = "#38bdf8";
+    landmarkContext.lineWidth = 0.5;
+
+    for (const tri of triangles) {
+        const p1 = vertices[tri.a];
+        const p2 = vertices[tri.b];
+        const p3 = vertices[tri.c];
+
+        landmarkContext.beginPath();
+        landmarkContext.moveTo(p1.x, p1.y);
+        landmarkContext.lineTo(p2.x, p2.y);
+        landmarkContext.lineTo(p3.x, p3.y);
+        landmarkContext.closePath();
+        landmarkContext.stroke();
+    }
 }

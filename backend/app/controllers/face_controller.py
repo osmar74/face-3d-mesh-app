@@ -3,12 +3,27 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from backend.app.config import settings
 from backend.app.models.image_model import ImageInfoResponse
 from backend.app.models.landmark_model import FaceLandmarksResponse
-from backend.app.models.mesh_model import MeshData, Triangle, Vertex3D
+from backend.app.models.mesh_model import (
+    MeshData,
+    MeshResponse,
+    Triangle,
+    Vertex,
+    Vertex3D,
+)
 from backend.app.models.scene_model import SceneConfig, SceneResponse
 from backend.app.services.face_mesh_detector import FaceMeshDetector
 from backend.app.services.image_input_service import ImageInputService
 from backend.app.services.landmark_expansion_service import LandmarkExpansionService
+from backend.app.services.mesh_builder import MeshBuilder
 from backend.app.services.projection_service import ProjectionService
+
+from backend.app.models.mesh_model import (
+    MeshData,
+    MeshResponse,
+    Triangle,
+    Vertex,
+    Vertex3D,
+)
 
 router = APIRouter(prefix="/face", tags=["face"])
 
@@ -129,4 +144,41 @@ async def detect_landmarks(file: UploadFile = File(...)) -> FaceLandmarksRespons
         landmark_count=len(expanded_landmarks),
         landmarks=expanded_landmarks,
         message="Landmarks faciales detectados y expandidos correctamente"
+    )
+
+@router.post("/triangulate", response_model=MeshResponse)
+async def triangulate(file: UploadFile = File(...)) -> MeshResponse:
+    image_service = ImageInputService()
+    detector = FaceMeshDetector()
+    expansion_service = LandmarkExpansionService()
+    mesh_builder = MeshBuilder()
+
+    try:
+        image, _ = await image_service.read_image(file)
+        landmarks = detector.detect(image)
+
+        if not landmarks:
+            raise HTTPException(status_code=404, detail="No se detectó rostro")
+
+        expanded_landmarks = expansion_service.expand(landmarks)
+
+        points_2d, triangles = mesh_builder.build(expanded_landmarks)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    vertices = [
+        Vertex(x=p.x, y=p.y, z=p.z)
+        for p in expanded_landmarks
+    ]
+
+    triangle_list = [
+        Triangle(a=int(t[0]), b=int(t[1]), c=int(t[2]))
+        for t in triangles
+    ]
+
+    return MeshResponse(
+        vertices=vertices,
+        triangles=triangle_list,
+        message="Triangulación generada correctamente"
     )
