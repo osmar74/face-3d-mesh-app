@@ -33,5 +33,9 @@ class MeshData(BaseModel):
 
 class MeshResponse(BaseModel):
     vertices: List[Vertex] = Field(default_factory=list)
+    projected_vertices: List[Vertex2D] = Field(default_factory=list)
     triangles: List[Triangle] = Field(default_factory=list)
+    rotation_a: float = 0.0
+    rotation_b: float = 0.0
+    distance: float = 500.0
     message: str

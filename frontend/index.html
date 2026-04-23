@@ -21,7 +21,26 @@
             </div>
 
             <div class="control-group">
-                <button id="detectButton">Detectar landmarks</button>
+                <button id="detectButton">Generar malla 2D</button>
+            </div>
+
+            <div class="control-group">
+                <button id="projectButton">Proyectar malla 3D</button>
+            </div>
+
+            <div class="control-group">
+                <label for="rotationA">Rotación horizontal (a)</label>
+                <input type="range" id="rotationA" min="-3.14" max="3.14" step="0.05" value="0">
+            </div>
+
+            <div class="control-group">
+                <label for="rotationB">Rotación vertical (b)</label>
+                <input type="range" id="rotationB" min="-1.57" max="1.57" step="0.05" value="0">
+            </div>
+
+            <div class="control-group">
+                <label for="distanceInput">Zoom / distancia (D)</label>
+                <input type="range" id="distanceInput" min="200" max="1200" step="10" value="500">
             </div>
 
             <div class="control-group">
@@ -42,13 +61,13 @@
                 </section>
 
                 <section class="panel">
-                    <h2>Puntos faciales</h2>
+                    <h2>Malla 2D sobre rostro</h2>
                     <canvas id="landmarkCanvas" class="landmark-canvas"></canvas>
                 </section>
 
                 <section class="panel">
-                    <h2>Triangulación / visor</h2>
-                    <div class="status-box">Se implementará en la siguiente etapa.</div>
+                    <h2>Proyección 3D</h2>
+                    <canvas id="projectionCanvas" class="landmark-canvas"></canvas>
                 </section>
             </div>
         </main>

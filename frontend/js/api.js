@@ -53,3 +53,24 @@ async function triangulateMesh(file) {
 
     return data;
 }
+
+async function projectMesh3D(file, rotationA, rotationB, distance) {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("rotation_a", rotationA);
+    formData.append("rotation_b", rotationB);
+    formData.append("distance", distance);
+
+    const response = await fetch(`${API_BASE_URL}/face/project-mesh`, {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.detail || "Error proyectando la malla 3D");
+    }
+
+    return data;
+}

@@ -1,3 +1,4 @@
+from fastapi import Form
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from backend.app.config import settings
@@ -181,4 +182,63 @@ async def triangulate(file: UploadFile = File(...)) -> MeshResponse:
         vertices=vertices,
         triangles=triangle_list,
         message="Triangulación generada correctamente"
+    )
+    
+@router.post("/project-mesh", response_model=MeshResponse)
+async def project_mesh(
+    file: UploadFile = File(...),
+    rotation_a: float = Form(0.0),
+    rotation_b: float = Form(0.0),
+    distance: float = Form(500.0),
+) -> MeshResponse:
+    image_service = ImageInputService()
+    detector = FaceMeshDetector()
+    expansion_service = LandmarkExpansionService()
+    mesh_builder = MeshBuilder()
+    projection_service = ProjectionService(distance=distance)
+
+    try:
+        image, _ = await image_service.read_image(file)
+        landmarks = detector.detect(image)
+
+        if not landmarks:
+            raise HTTPException(status_code=404, detail="No se detectó rostro")
+
+        expanded_landmarks = expansion_service.expand(landmarks)
+
+        vertices = [
+            Vertex3D(x=point.x, y=point.y, z=point.z)
+            for point in expanded_landmarks
+        ]
+
+        normalized_vertices = projection_service.normalize_vertices(vertices)
+        projected_vertices = projection_service.rotate_and_project(
+            normalized_vertices,
+            rotation_a=rotation_a,
+            rotation_b=rotation_b,
+        )
+
+        _, triangles_np = mesh_builder.build(expanded_landmarks)
+
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+    response_vertices = [
+        Vertex(x=v.x, y=v.y, z=v.z)
+        for v in normalized_vertices
+    ]
+
+    response_triangles = [
+        Triangle(a=int(t[0]), b=int(t[1]), c=int(t[2]))
+        for t in triangles_np
+    ]
+
+    return MeshResponse(
+        vertices=response_vertices,
+        projected_vertices=projected_vertices,
+        triangles=response_triangles,
+        rotation_a=rotation_a,
+        rotation_b=rotation_b,
+        distance=distance,
+        message="Proyección 3D generada correctamente"
     )
