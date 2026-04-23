@@ -37,8 +37,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const delaunayCleanContext = delaunayCleanCanvas.getContext("2d");
     const projectionContext = projectionCanvas.getContext("2d");
 
+    const startCameraButton = document.getElementById("startCameraButton");
+    const captureButton = document.getElementById("captureButton");
+    const webcamVideo = document.getElementById("webcamVideo");
+    const captureCanvas = document.getElementById("captureCanvas");
+
     let selectedFile = null;
     let loadedImage = null;
+    let webcamStream = null;
+    let currentInputMode = "file";
     let currentLandmarksResult = null;
     let currentMesh2DResult = null;
     let currentProjectionResult = null;
@@ -68,6 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         selectedFile = file;
+        currentInputMode = "file";
         currentLandmarksResult = null;
         currentMesh2DResult = null;
         currentProjectionResult = null;
@@ -88,6 +96,80 @@ document.addEventListener("DOMContentLoaded", () => {
             `Imagen seleccionada:\n${file.name}\nTamaño: ${Math.round(file.size / 1024)} KB`;
 
         backendResponse.textContent = "Lista para enviar al backend.";
+        resetProcessingBadges();
+    });
+
+        startCameraButton.addEventListener("click", async () => {
+        try {
+            if (webcamStream) {
+                uploadStatus.textContent = "La webcam ya está activa.";
+                return;
+            }
+
+            webcamStream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                    facingMode: "user"
+                },
+                audio: false
+            });
+
+            webcamVideo.srcObject = webcamStream;
+            currentInputMode = "webcam";
+            uploadStatus.textContent = "Webcam activada correctamente.";
+        } catch (error) {
+            uploadStatus.textContent = "No se pudo activar la webcam.";
+            backendResponse.textContent = error.message;
+        }
+    });
+
+    captureButton.addEventListener("click", async () => {
+        if (!webcamStream || !webcamVideo.videoWidth || !webcamVideo.videoHeight) {
+            uploadStatus.textContent = "Primero activa la webcam.";
+            return;
+        }
+
+        const width = webcamVideo.videoWidth;
+        const height = webcamVideo.videoHeight;
+
+        captureCanvas.width = width;
+        captureCanvas.height = height;
+
+        const captureContext = captureCanvas.getContext("2d");
+        captureContext.drawImage(webcamVideo, 0, 0, width, height);
+
+        const blob = await new Promise((resolve) => {
+            captureCanvas.toBlob(resolve, "image/png");
+        });
+
+        if (!blob) {
+            uploadStatus.textContent = "No se pudo capturar el frame.";
+            return;
+        }
+
+        const capturedFile = new File([blob], "webcam_capture.png", { type: "image/png" });
+        selectedFile = capturedFile;
+        currentInputMode = "webcam";
+
+        const objectUrl = URL.createObjectURL(blob);
+        const img = new Image();
+
+        img.onload = () => {
+            loadedImage = img;
+            currentLandmarksResult = null;
+            currentMesh2DResult = null;
+            currentProjectionResult = null;
+
+            prepareAllCanvases();
+            redrawAllPanels();
+            badgeReal.textContent = `${img.width}x${img.height}`;
+        };
+
+        img.src = objectUrl;
+
+        uploadStatus.textContent = "Frame capturado desde webcam.";
+        backendResponse.textContent = "La captura está lista para procesarse.";
         resetProcessingBadges();
     });
 
@@ -756,4 +838,10 @@ document.addEventListener("DOMContentLoaded", () => {
             y: offsetY + (point.y - minY) * scale
         }));
     }
+
+    window.addEventListener("beforeunload", () => {
+        if (webcamStream) {
+            webcamStream.getTracks().forEach(track => track.stop());
+        }
+    });
 });

@@ -18,6 +18,12 @@
                 <h3>ENTRADA</h3>
                 <label for="imageInput">Subir fotografía</label>
                 <input type="file" id="imageInput" accept="image/*">
+
+                <button id="startCameraButton">Activar webcam</button>
+                <button id="captureButton">Capturar frame</button>
+
+                <video id="webcamVideo" class="webcam-video" autoplay playsinline muted></video>
+                <canvas id="captureCanvas" class="hidden-canvas"></canvas>
             </div>
 
             <div class="control-card">
