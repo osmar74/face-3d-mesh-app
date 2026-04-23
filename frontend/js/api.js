@@ -74,3 +74,46 @@ async function projectMesh3D(file, rotationA, rotationB, distance) {
 
     return data;
 }
+
+async function saveMeshResult(data, filenamePrefix = "mesh_result") {
+    const response = await fetch(`${API_BASE_URL}/storage/save`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            data: data,
+            filename_prefix: filenamePrefix
+        })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(result.detail || "Error guardando el resultado");
+    }
+
+    return result;
+}
+
+async function listSavedResults() {
+    const response = await fetch(`${API_BASE_URL}/storage/list`);
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(result.detail || "Error listando resultados guardados");
+    }
+
+    return result;
+}
+
+async function loadSavedResult(filename) {
+    const response = await fetch(`${API_BASE_URL}/storage/load/${encodeURIComponent(filename)}`);
+    const result = await response.json();
+
+    if (!response.ok) {
+        throw new Error(result.detail || "Error cargando resultado guardado");
+    }
+
+    return result;
+}
