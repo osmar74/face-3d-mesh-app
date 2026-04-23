@@ -7,86 +7,126 @@
     <link rel="stylesheet" href="./css/styles.css">
 </head>
 <body>
-    <div class="app-container">
+    <div class="app-shell">
         <aside class="sidebar">
-            <h1>Face 3D Mesh App</h1>
+            <div class="brand-box">
+                <h1>GRAPH_VBASIC</h1>
+                <p>Visualizador 3D de Proyección Facial</p>
+            </div>
 
-            <div class="control-group">
+            <div class="control-card">
+                <h3>ENTRADA</h3>
                 <label for="imageInput">Subir fotografía</label>
                 <input type="file" id="imageInput" accept="image/*">
             </div>
 
-            <div class="control-group">
+            <div class="control-card">
+                <h3>PROCESO</h3>
                 <button id="uploadButton">Validar imagen</button>
-            </div>
-
-            <div class="control-group">
                 <button id="detectButton">Generar malla 2D</button>
-            </div>
-
-            <div class="control-group">
                 <button id="projectButton">Proyectar malla 3D</button>
             </div>
 
-            <div class="control-group">
+            <div class="control-card">
+                <h3>ALMACENAMIENTO</h3>
                 <button id="saveButton">Guardar resultado</button>
-            </div>
 
-            <div class="control-group">
                 <label for="savedFilesSelect">Resultados guardados</label>
                 <select id="savedFilesSelect"></select>
-            </div>
 
-            <div class="control-group">
                 <button id="refreshSavedButton">Actualizar lista</button>
-            </div>
-
-            <div class="control-group">
                 <button id="loadButton">Cargar resultado</button>
             </div>
 
-            <div class="control-group">
-                <label for="rotationA">Rotación horizontal (a)</label>
+            <div class="control-card">
+                <h3>ROTACIÓN</h3>
+
+                <label for="rotationA">Ángulo A</label>
                 <input type="range" id="rotationA" min="-3.14" max="3.14" step="0.05" value="0">
-            </div>
 
-            <div class="control-group">
-                <label for="rotationB">Rotación vertical (b)</label>
+                <label for="rotationB">Ángulo B</label>
                 <input type="range" id="rotationB" min="-1.57" max="1.57" step="0.05" value="0">
-            </div>
 
-            <div class="control-group">
-                <label for="distanceInput">Zoom / distancia (D)</label>
+                <label for="distanceInput">Distancia D</label>
                 <input type="range" id="distanceInput" min="200" max="1200" step="10" value="500">
             </div>
 
-            <div class="control-group">
+            <div class="control-card">
+                <h3>ESTADO</h3>
                 <div id="uploadStatus" class="status-box">Sin imagen cargada.</div>
             </div>
         </aside>
 
-        <main class="main-content">
-            <div class="panels-grid">
-                <section class="panel">
-                    <h2>Imagen real</h2>
-                    <img id="imagePreview" class="preview-image" alt="Vista previa de imagen">
-                </section>
+        <main class="dashboard">
+            <section class="tech-panel">
+                <div class="panel-header">
+                    <span class="panel-title">01 — IMAGEN REAL</span>
+                    <span id="badgeReal" class="panel-badge">--</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="realCanvas" class="tech-canvas"></canvas>
+                </div>
+            </section>
 
-                <section class="panel">
-                    <h2>Respuesta del backend</h2>
-                    <div id="backendResponse" class="status-box">Esperando acción...</div>
-                </section>
+            <section class="tech-panel">
+                <div class="panel-header">
+                    <span class="panel-title">02A — FOTO + LANDMARKS</span>
+                    <span id="badgeLandmarksOverlay" class="panel-badge">--</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="overlayLandmarksCanvas" class="tech-canvas"></canvas>
+                </div>
+            </section>
 
-                <section class="panel">
-                    <h2>Malla 2D sobre rostro</h2>
-                    <canvas id="landmarkCanvas" class="landmark-canvas"></canvas>
-                </section>
+            <section class="tech-panel">
+                <div class="panel-header">
+                    <span class="panel-title">02B — SOLO LANDMARKS</span>
+                    <span id="badgeLandmarksOnly" class="panel-badge">--</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="landmarksOnlyCanvas" class="tech-canvas"></canvas>
+                </div>
+            </section>
 
-                <section class="panel">
-                    <h2>Proyección 3D</h2>
-                    <canvas id="projectionCanvas" class="landmark-canvas"></canvas>
-                </section>
-            </div>
+            <section class="tech-panel">
+                <div class="panel-header">
+                    <span class="panel-title">03A — FOTO + DELAUNAY</span>
+                    <span id="badgeDelaunayOverlay" class="panel-badge">--</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="delaunayOverlayCanvas" class="tech-canvas"></canvas>
+                </div>
+            </section>
+
+            <section class="tech-panel">
+                <div class="panel-header">
+                    <span class="panel-title">03B — DELAUNAY LIMPIO</span>
+                    <span id="badgeDelaunayClean" class="panel-badge">--</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="delaunayCleanCanvas" class="tech-canvas"></canvas>
+                </div>
+            </section>
+
+            <section class="tech-panel">
+                <div class="panel-header">
+                    <span class="panel-title">04 — PROYECCIÓN 3D INTERACTIVA</span>
+                    <span id="badgeProjection3D" class="panel-badge">3D</span>
+                </div>
+                <div class="panel-body">
+                    <canvas id="projectionCanvas" class="tech-canvas"></canvas>
+                </div>
+            </section>
+
+            <section class="tech-panel tech-panel-wide">
+                <div class="panel-header">
+                    <span class="panel-title">05 — RESPUESTA DEL BACKEND</span>
+                    <span class="panel-badge">JSON</span>
+                </div>
+                <div class="panel-body">
+                    <div id="backendResponse" class="status-box response-box">Esperando acción...</div>
+                </div>
+            </section>
         </main>
     </div>
 
