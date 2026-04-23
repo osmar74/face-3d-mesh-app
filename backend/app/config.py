@@ -5,6 +5,7 @@ class Settings:
     DEFAULT_DISTANCE = 500.0
     DEFAULT_ROTATION_A = 0.0
     DEFAULT_ROTATION_B = 0.0
+    FACE_LANDMARKER_MODEL_PATH = "backend/app/models_store/face_landmarker.task"
 
 
 settings = Settings()

@@ -2,8 +2,10 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from backend.app.config import settings
 from backend.app.models.image_model import ImageInfoResponse
+from backend.app.models.landmark_model import FaceLandmarksResponse
 from backend.app.models.mesh_model import MeshData, Triangle, Vertex3D
 from backend.app.models.scene_model import SceneConfig, SceneResponse
+from backend.app.services.face_mesh_detector import FaceMeshDetector
 from backend.app.services.image_input_service import ImageInputService
 from backend.app.services.projection_service import ProjectionService
 
@@ -81,4 +83,46 @@ async def upload_image(file: UploadFile = File(...)) -> ImageInfoResponse:
         height=height,
         channels=channels,
         message="Imagen cargada y validada correctamente"
+    )
+
+
+@router.post("/detect-landmarks", response_model=FaceLandmarksResponse)
+async def detect_landmarks(file: UploadFile = File(...)) -> FaceLandmarksResponse:
+    image_service = ImageInputService()
+    detector = FaceMeshDetector()
+
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="El archivo no tiene nombre")
+
+    if not image_service.validate_extension(file.filename):
+        raise HTTPException(
+            status_code=400,
+            detail="Extensión no permitida. Usa JPG, JPEG, PNG, BMP o WEBP."
+        )
+
+    try:
+        image, _ = await image_service.read_image(file)
+        width, height, _ = image_service.extract_image_info(image)
+        landmarks = detector.detect(image)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error interno detectando landmarks: {str(error)}"
+        ) from error
+
+    if not landmarks:
+        raise HTTPException(
+            status_code=404,
+            detail="No se detectó ningún rostro en la imagen"
+        )
+
+    return FaceLandmarksResponse(
+        filename=file.filename,
+        image_width=width,
+        image_height=height,
+        landmark_count=len(landmarks),
+        landmarks=landmarks,
+        message="Landmarks faciales detectados correctamente"
     )

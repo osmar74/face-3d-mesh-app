@@ -17,3 +17,21 @@ async function uploadImageToBackend(file) {
 
     return data;
 }
+
+async function detectLandmarksInBackend(file) {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch(`${API_BASE_URL}/face/detect-landmarks`, {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.detail || "Error desconocido al detectar landmarks");
+    }
+
+    return data;
+}

@@ -17,7 +17,11 @@
             </div>
 
             <div class="control-group">
-                <button id="uploadButton">Enviar al backend</button>
+                <button id="uploadButton">Validar imagen</button>
+            </div>
+
+            <div class="control-group">
+                <button id="detectButton">Detectar landmarks</button>
             </div>
 
             <div class="control-group">
@@ -34,17 +38,17 @@
 
                 <section class="panel">
                     <h2>Respuesta del backend</h2>
-                    <div id="backendResponse" class="status-box">Esperando envío...</div>
+                    <div id="backendResponse" class="status-box">Esperando acción...</div>
                 </section>
 
                 <section class="panel">
                     <h2>Puntos faciales</h2>
-                    <div class="status-box">Se implementará en la siguiente etapa.</div>
+                    <canvas id="landmarkCanvas" class="landmark-canvas"></canvas>
                 </section>
 
                 <section class="panel">
                     <h2>Triangulación / visor</h2>
-                    <div class="status-box">Se implementará en etapas posteriores.</div>
+                    <div class="status-box">Se implementará en la siguiente etapa.</div>
                 </section>
             </div>
         </main>

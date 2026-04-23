@@ -97,3 +97,12 @@ body {
     white-space: pre-wrap;
     font-size: 14px;
 }
+
+.landmark-canvas {
+    width: 100%;
+    max-height: 360px;
+    min-height: 260px;
+    background: #0b1220;
+    border-radius: 10px;
+    border: 1px solid #334155;
+}
