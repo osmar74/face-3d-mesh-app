@@ -1,0 +1,27 @@
+# Entorno virtual
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# VS Code
+.vscode/
+
+# Variables de entorno
+.env
+
+# Archivos temporales
+*.log
+*.tmp
+
+# Datos exportados
+backend/app/static_exports/*.json
+samples/saved_meshes/*.json
+
+# Sistema
+.DS_Store
+Thumbs.db
