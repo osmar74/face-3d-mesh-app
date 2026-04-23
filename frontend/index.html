@@ -4,9 +4,53 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Face 3D Mesh App</title>
+    <link rel="stylesheet" href="./css/styles.css">
 </head>
 <body>
-    <h1>Face 3D Mesh App</h1>
-    <p>Etapa 1: estructura base del proyecto.</p>
+    <div class="app-container">
+        <aside class="sidebar">
+            <h1>Face 3D Mesh App</h1>
+
+            <div class="control-group">
+                <label for="imageInput">Subir fotografía</label>
+                <input type="file" id="imageInput" accept="image/*">
+            </div>
+
+            <div class="control-group">
+                <button id="uploadButton">Enviar al backend</button>
+            </div>
+
+            <div class="control-group">
+                <div id="uploadStatus" class="status-box">Sin imagen cargada.</div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="panels-grid">
+                <section class="panel">
+                    <h2>Imagen real</h2>
+                    <img id="imagePreview" class="preview-image" alt="Vista previa de imagen">
+                </section>
+
+                <section class="panel">
+                    <h2>Respuesta del backend</h2>
+                    <div id="backendResponse" class="status-box">Esperando envío...</div>
+                </section>
+
+                <section class="panel">
+                    <h2>Puntos faciales</h2>
+                    <div class="status-box">Se implementará en la siguiente etapa.</div>
+                </section>
+
+                <section class="panel">
+                    <h2>Triangulación / visor</h2>
+                    <div class="status-box">Se implementará en etapas posteriores.</div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="./js/api.js"></script>
+    <script src="./js/app.js"></script>
 </body>
 </html>

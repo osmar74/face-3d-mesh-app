@@ -13,3 +13,6 @@ Aplicación web para detectar landmarks faciales, construir una malla 3D tipo De
 ## Flujo de ramas
 - main: estable
 - dev: integración
+
+## para ejecutar
+python -m uvicorn backend.app.main:app --reload
