@@ -28,8 +28,7 @@ class PRNetFaceDetector(FaceDetectorInterface):
             self.prn = PRN(self.model_path)
         finally:
             os.chdir(current_dir)
-        
-        
+
         self.transform = transforms.Compose([
             transforms.ToTensor()
         ])
@@ -38,26 +37,35 @@ class PRNetFaceDetector(FaceDetectorInterface):
         if image_bgr is None or image_bgr.size == 0:
             raise ValueError("Imagen vacía")
 
+        original_h, original_w = image_bgr.shape[:2]
+
         image_resized = cv2.resize(image_bgr, (256, 256))
 
-        image_tensor = torch.as_tensor(self.transform(image_resized), dtype=torch.float32)
+        transformed_image = self.transform(image_resized)
+        image_tensor = torch.as_tensor(transformed_image, dtype=torch.float32)
         image_tensor = image_tensor.unsqueeze(0)
 
         with torch.no_grad():
             pos = self.prn.net_forward(image_tensor)
 
-        vertices = self.prn.get_vertices(pos)
+        pos = pos.squeeze(0)
+        pos = pos.permute(1, 2, 0)
+
+        landmarks = self.prn.get_landmarks(pos)
 
         output: List[FaceLandmark] = []
 
-        for index, vertex in enumerate(vertices):
-            x, y, z = vertex
+        for index, point in enumerate(landmarks):
+            x, y, z = point
+
+            x_img = (float(x) / 256.0) * original_w
+            y_img = (float(y) / 256.0) * original_h
 
             output.append(
                 FaceLandmark(
                     index=index,
-                    x=float(x),
-                    y=float(y),
+                    x=x_img,
+                    y=y_img,
                     z=float(z),
                     source="prnet"
                 )
