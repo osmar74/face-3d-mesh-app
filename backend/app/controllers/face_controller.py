@@ -12,7 +12,8 @@ from backend.app.models.mesh_model import (
     Vertex3D,
 )
 from backend.app.models.scene_model import SceneConfig, SceneResponse
-from backend.app.services.face_mesh_detector import FaceMeshDetector
+from backend.app.models.detector_mode_model import DetectorMode
+from backend.app.services.detector_factory import DetectorFactory
 from backend.app.services.image_input_service import ImageInputService
 from backend.app.services.landmark_expansion_service import LandmarkExpansionService
 from backend.app.services.mesh_builder import MeshBuilder
@@ -106,7 +107,7 @@ async def upload_image(file: UploadFile = File(...)) -> ImageInfoResponse:
 @router.post("/detect-landmarks", response_model=FaceLandmarksResponse)
 async def detect_landmarks(file: UploadFile = File(...)) -> FaceLandmarksResponse:
     image_service = ImageInputService()
-    detector = FaceMeshDetector()
+    detector = DetectorFactory.create(DetectorMode.MEDIAPIPE)
     expansion_service = LandmarkExpansionService()
 
     if not file.filename:
@@ -150,7 +151,7 @@ async def detect_landmarks(file: UploadFile = File(...)) -> FaceLandmarksRespons
 @router.post("/triangulate", response_model=MeshResponse)
 async def triangulate(file: UploadFile = File(...)) -> MeshResponse:
     image_service = ImageInputService()
-    detector = FaceMeshDetector()
+    detector = DetectorFactory.create(DetectorMode.MEDIAPIPE)
     expansion_service = LandmarkExpansionService()
     mesh_builder = MeshBuilder()
 
