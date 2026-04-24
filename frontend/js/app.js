@@ -767,8 +767,8 @@ document.addEventListener("DOMContentLoaded", () => {
     function drawProjectedMeshCentered(context, canvas, projectedVertices, triangles, rotationA = 0, rotationB = 0) {
         const transformed = fitPointsToCanvas(projectedVertices, canvas, 42);
 
-        context.strokeStyle = "#ff5b6e";
-        context.lineWidth = 0.8;
+        context.strokeStyle = detectorModeSelect.value === "prnet" ? "#2cff88" : "#ff5b6e";
+        context.lineWidth = detectorModeSelect.value === "prnet" ? 0.55 : 0.8;
 
         for (const tri of triangles) {
             const p1 = transformed[tri.a];
@@ -785,7 +785,7 @@ document.addEventListener("DOMContentLoaded", () => {
             context.stroke();
         }
 
-        context.fillStyle = "#facc15";
+        context.fillStyle = detectorModeSelect.value === "prnet" ? "#2cff88" : "#facc15";
         for (const point of transformed) {
             context.beginPath();
             context.arc(point.x, point.y, 1.0, 0, Math.PI * 2);
