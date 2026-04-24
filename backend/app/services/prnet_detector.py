@@ -97,16 +97,27 @@ class PRNetFaceDetector(FaceDetectorInterface):
         max_points = 800
         step = max(1, len(vertices) // max_points)
         sampled_vertices = vertices[::step]
+        z_values = [v[2] for v in sampled_vertices]
+        z_min = min(z_values)
+        z_max = max(z_values)
 
         for index, vertex in enumerate(sampled_vertices):
             x, y, z = vertex
+            
+            # Filtrar ruido por profundidad
+            if z < z_min + 0.05 * (z_max - z_min):
+                continue
+
+            # Filtrar puntos fuera del rango válido
+            if x < 0 or x > 256 or y < 0 or y > 256:
+                continue
 
             x_img = (float(x) / 256.0) * original_w
             y_img = (float(y) / 256.0) * original_h
 
             output.append(
                 FaceLandmark(
-                    index=index,
+                    index=len(output),
                     x=x_img,
                     y=y_img,
                     z=float(z),
