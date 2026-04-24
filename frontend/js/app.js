@@ -1,5 +1,11 @@
 document.addEventListener("DOMContentLoaded", () => {
     const imageInput = document.getElementById("imageInput");
+    const startCameraButton = document.getElementById("startCameraButton");
+    const captureButton = document.getElementById("captureButton");
+    const webcamVideo = document.getElementById("webcamVideo");
+    const captureCanvas = document.getElementById("captureCanvas");
+
+    const exportObjButton = document.getElementById("exportObjButton");
     const uploadButton = document.getElementById("uploadButton");
     const detectButton = document.getElementById("detectButton");
     const projectButton = document.getElementById("projectButton");
@@ -7,6 +13,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const refreshSavedButton = document.getElementById("refreshSavedButton");
     const loadButton = document.getElementById("loadButton");
 
+    const detectorModeSelect = document.getElementById("detectorMode");
+    const prnetOutputModeSelect = document.getElementById("prnetOutputMode");
     const savedFilesSelect = document.getElementById("savedFilesSelect");
 
     const rotationAInput = document.getElementById("rotationA");
@@ -37,15 +45,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const delaunayCleanContext = delaunayCleanCanvas.getContext("2d");
     const projectionContext = projectionCanvas.getContext("2d");
 
-    const startCameraButton = document.getElementById("startCameraButton");
-    const captureButton = document.getElementById("captureButton");
-    const webcamVideo = document.getElementById("webcamVideo");
-    const captureCanvas = document.getElementById("captureCanvas");
-
     let selectedFile = null;
     let loadedImage = null;
     let webcamStream = null;
-    let currentInputMode = "file";
+
     let currentLandmarksResult = null;
     let currentMesh2DResult = null;
     let currentProjectionResult = null;
@@ -75,7 +78,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         selectedFile = file;
-        currentInputMode = "file";
         currentLandmarksResult = null;
         currentMesh2DResult = null;
         currentProjectionResult = null;
@@ -99,7 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
         resetProcessingBadges();
     });
 
-        startCameraButton.addEventListener("click", async () => {
+    startCameraButton.addEventListener("click", async () => {
         try {
             if (webcamStream) {
                 uploadStatus.textContent = "La webcam ya está activa.";
@@ -116,7 +118,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             webcamVideo.srcObject = webcamStream;
-            currentInputMode = "webcam";
             uploadStatus.textContent = "Webcam activada correctamente.";
         } catch (error) {
             uploadStatus.textContent = "No se pudo activar la webcam.";
@@ -150,7 +151,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const capturedFile = new File([blob], "webcam_capture.png", { type: "image/png" });
         selectedFile = capturedFile;
-        currentInputMode = "webcam";
 
         const objectUrl = URL.createObjectURL(blob);
         const img = new Image();
@@ -163,6 +163,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             prepareAllCanvases();
             redrawAllPanels();
+            drawImageFittedToCanvas(realContext, realCanvas, loadedImage);
             badgeReal.textContent = `${img.width}x${img.height}`;
         };
 
@@ -185,7 +186,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const result = await uploadImageToBackend(selectedFile);
             uploadStatus.textContent = "Imagen validada correctamente.";
             backendResponse.textContent = JSON.stringify(result, null, 2);
-
             badgeReal.textContent = `${result.width}x${result.height}`;
         } catch (error) {
             uploadStatus.textContent = "Error al validar la imagen.";
@@ -199,11 +199,24 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        uploadStatus.textContent = "Detectando landmarks y generando malla 2D...";
+        const detectorMode = detectorModeSelect.value;
+        const prnetOutputMode = prnetOutputModeSelect.value;
+
+        uploadStatus.textContent =
+         `Procesando con ${detectorMode.toUpperCase()} (${prnetOutputMode})...`;
 
         try {
-            const landmarksResult = await detectLandmarksInBackend(selectedFile);
-            const meshResult = await triangulateMesh(selectedFile);
+            const landmarksResult = await detectLandmarksInBackend(
+            selectedFile,
+            detectorMode,
+            prnetOutputMode
+        );
+
+        const meshResult = await triangulateMesh(
+            selectedFile,
+            detectorMode,
+            prnetOutputMode
+        );
 
             currentLandmarksResult = landmarksResult;
             currentMesh2DResult = meshResult;
@@ -212,6 +225,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
             backendResponse.textContent = JSON.stringify(
                 {
+                    detector_mode: detectorMode,
+                    prnet_output_mode: prnetOutputMode,
                     landmark_count: landmarksResult.landmark_count,
                     mesh_vertices: meshResult.vertices.length,
                     mesh_triangles: meshResult.triangles.length,
@@ -234,6 +249,54 @@ document.addEventListener("DOMContentLoaded", () => {
         await renderProjection();
     });
 
+    exportObjButton.addEventListener("click", async () => {
+        if (!selectedFile) {
+            uploadStatus.textContent = "Primero selecciona una imagen.";
+            return;
+        }
+
+        const detectorMode = detectorModeSelect.value;
+        const prnetOutputMode = prnetOutputModeSelect.value;
+
+        uploadStatus.textContent =
+            `Exportando OBJ con ${detectorMode.toUpperCase()} (${prnetOutputMode})...`;
+
+        try {
+            const result = await exportObjFile(
+                selectedFile,
+                detectorMode,
+                prnetOutputMode
+            );
+
+            const downloadUrl = URL.createObjectURL(result.blob);
+
+            const link = document.createElement("a");
+            link.href = downloadUrl;
+            link.download = result.filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            URL.revokeObjectURL(downloadUrl);
+
+            uploadStatus.textContent = `OBJ exportado: ${result.filename}`;
+
+            backendResponse.textContent = JSON.stringify(
+                {
+                    detector_mode: detectorMode,
+                    prnet_output_mode: prnetOutputMode,
+                    filename: result.filename,
+                    message: "Archivo OBJ exportado correctamente"
+                },
+                null,
+                2
+            );
+        } catch (error) {
+            uploadStatus.textContent = "Error al exportar OBJ.";
+            backendResponse.textContent = error.message;
+        }
+    });
+
     saveButton.addEventListener("click", async () => {
         if (!currentMesh2DResult && !currentProjectionResult && !currentLandmarksResult) {
             uploadStatus.textContent = "Primero genera información para guardar.";
@@ -242,6 +305,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         try {
             const payload = {
+                detector_mode: detectorModeSelect.value,
+                prnet_output_mode: prnetOutputModeSelect.value,
                 landmarks: currentLandmarksResult,
                 mesh2d: currentMesh2DResult,
                 projection3d: currentProjectionResult,
@@ -283,6 +348,14 @@ document.addEventListener("DOMContentLoaded", () => {
             currentMesh2DResult = data.mesh2d || null;
             currentProjectionResult = data.projection3d || null;
 
+            if (data.detector_mode && detectorModeSelect) {
+                detectorModeSelect.value = data.detector_mode;
+            }
+
+            if (data.prnet_output_mode && prnetOutputModeSelect) {
+                prnetOutputModeSelect.value = data.prnet_output_mode;
+            }
+
             if (data.scene) {
                 rotationAInput.value = data.scene.rotation_a ?? 0;
                 rotationBInput.value = data.scene.rotation_b ?? 0;
@@ -318,13 +391,23 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+    window.addEventListener("beforeunload", () => {
+        if (webcamStream) {
+            webcamStream.getTracks().forEach(track => track.stop());
+        }
+    });
+
     async function renderProjection() {
         if (!selectedFile) {
             uploadStatus.textContent = "Primero selecciona una imagen.";
             return;
         }
 
-        uploadStatus.textContent = "Calculando proyección 3D en backend...";
+        const detectorMode = detectorModeSelect.value;
+        const prnetOutputMode = prnetOutputModeSelect.value;
+
+        uploadStatus.textContent =
+            `Calculando proyección 3D con ${detectorMode.toUpperCase()} (${prnetOutputMode})...`;
 
         const rotationA = parseFloat(rotationAInput.value);
         const rotationB = parseFloat(rotationBInput.value);
@@ -335,7 +418,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 selectedFile,
                 rotationA,
                 rotationB,
-                distance
+                distance,
+                detectorMode,
+                prnetOutputMode
             );
 
             currentProjectionResult = result;
@@ -344,6 +429,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
             backendResponse.textContent = JSON.stringify(
                 {
+                    detector_mode: detectorMode,
+                    prnet_output_mode: prnetOutputMode,
                     vertices: result.vertices.length,
                     projected_vertices: result.projected_vertices.length,
                     triangles: result.triangles.length,
@@ -613,20 +700,43 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function drawLandmarksOverlayOnImage(context, canvas, landmarks) {
-        if (!loadedImage || !landmarks) return;
+        if (!loadedImage || !landmarks || !landmarks.length) return;
 
         const { offsetX, offsetY, scaleX, scaleY } = getImageFitTransform(canvas, loadedImage);
 
+        const imageDrawWidth = loadedImage.width * scaleX;
+        const imageDrawHeight = loadedImage.height * scaleY;
+
+        const isPrnetDense = landmarks.some(point => point.source === "prnet_dense");
+
+        if (isPrnetDense) {
+            const fittedPoints = fitPointsToBox(
+            landmarks,
+            offsetX + imageDrawWidth * 0.31,
+            offsetY + imageDrawHeight * 0.11,
+            imageDrawWidth * 0.38,
+            imageDrawHeight * 0.58
+        );
+
+            context.fillStyle = "#2cff88";
+
+            for (const point of fittedPoints) {
+                context.beginPath();
+                context.arc(point.x, point.y, 1.5, 0, Math.PI * 2);
+                context.fill();
+            }
+
+            return;
+        }
+
+        context.fillStyle = "#2cff88";
+
         for (const point of landmarks) {
+            const x = offsetX + point.x * scaleX;
+            const y = offsetY + point.y * scaleY;
+
             context.beginPath();
-            context.fillStyle = point.source === "synthetic" ? "#f59e0b" : "#2cff88";
-            context.arc(
-                offsetX + point.x * scaleX,
-                offsetY + point.y * scaleY,
-                point.source === "synthetic" ? 2.2 : 1.4,
-                0,
-                Math.PI * 2
-            );
+            context.arc(x, y, 1.5, 0, Math.PI * 2);
             context.fill();
         }
     }
@@ -641,11 +751,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const sourcePoint = landmarks[index];
 
             context.beginPath();
-            context.fillStyle = sourcePoint.source === "synthetic" ? "#f59e0b" : "#2cff88";
+            context.fillStyle = sourcePoint.source === "prnet" ? "#facc15" : "#2cff88";
             context.arc(
                 point.x,
                 point.y,
-                sourcePoint.source === "synthetic" ? 2.2 : 1.4,
+                sourcePoint.source === "prnet" ? 2.0 : 1.4,
                 0,
                 Math.PI * 2
             );
@@ -658,20 +768,47 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const { offsetX, offsetY, scaleX, scaleY } = getImageFitTransform(canvas, loadedImage);
 
+        const imageDrawWidth = loadedImage.width * scaleX;
+        const imageDrawHeight = loadedImage.height * scaleY;
+
+        const isPrnetDense =
+            detectorModeSelect.value === "prnet" &&
+            prnetOutputModeSelect.value === "dense";
+
+        let drawableVertices = null;
+
+        if (isPrnetDense) {
+            drawableVertices = fitPointsToBox(
+                vertices,
+                offsetX + imageDrawWidth * 0.31,
+                offsetY + imageDrawHeight * 0.11,
+                imageDrawWidth * 0.38,
+                imageDrawHeight * 0.58
+            );
+        }
+
         context.strokeStyle = "#2cff88";
-        context.lineWidth = 0.8;
+        context.lineWidth = isPrnetDense ? 0.45 : 0.8;
 
         for (const tri of triangles) {
-            const p1 = vertices[tri.a];
-            const p2 = vertices[tri.b];
-            const p3 = vertices[tri.c];
+            const p1 = isPrnetDense ? drawableVertices[tri.a] : vertices[tri.a];
+            const p2 = isPrnetDense ? drawableVertices[tri.b] : vertices[tri.b];
+            const p3 = isPrnetDense ? drawableVertices[tri.c] : vertices[tri.c];
 
             if (!p1 || !p2 || !p3) continue;
 
             context.beginPath();
-            context.moveTo(offsetX + p1.x * scaleX, offsetY + p1.y * scaleY);
-            context.lineTo(offsetX + p2.x * scaleX, offsetY + p2.y * scaleY);
-            context.lineTo(offsetX + p3.x * scaleX, offsetY + p3.y * scaleY);
+
+            if (isPrnetDense) {
+                context.moveTo(p1.x, p1.y);
+                context.lineTo(p2.x, p2.y);
+                context.lineTo(p3.x, p3.y);
+            } else {
+                context.moveTo(offsetX + p1.x * scaleX, offsetY + p1.y * scaleY);
+                context.lineTo(offsetX + p2.x * scaleX, offsetY + p2.y * scaleY);
+                context.lineTo(offsetX + p3.x * scaleX, offsetY + p3.y * scaleY);
+            }
+
             context.closePath();
             context.stroke();
         }
@@ -682,14 +819,40 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const { offsetX, offsetY, scaleX, scaleY } = getImageFitTransform(canvas, loadedImage);
 
+        const imageDrawWidth = loadedImage.width * scaleX;
+        const imageDrawHeight = loadedImage.height * scaleY;
+
+        const isPrnetDense =
+            detectorModeSelect.value === "prnet" &&
+            prnetOutputModeSelect.value === "dense";
+
+        let drawableVertices = null;
+
+        if (isPrnetDense) {
+            drawableVertices = fitPointsToBox(
+                vertices,
+                offsetX + imageDrawWidth * 0.31,
+                offsetY + imageDrawHeight * 0.11,
+                imageDrawWidth * 0.38,
+                imageDrawHeight * 0.58
+            );
+        }
+
         context.fillStyle = "#2cff88";
 
-        for (const point of vertices) {
+        for (let index = 0; index < vertices.length; index += 1) {
+            const point = isPrnetDense ? drawableVertices[index] : vertices[index];
+
+            if (!point) continue;
+
+            const x = isPrnetDense ? point.x : offsetX + point.x * scaleX;
+            const y = isPrnetDense ? point.y : offsetY + point.y * scaleY;
+
             context.beginPath();
             context.arc(
-                offsetX + point.x * scaleX,
-                offsetY + point.y * scaleY,
-                1.1,
+                x,
+                y,
+                isPrnetDense ? 0.9 : 1.1,
                 0,
                 Math.PI * 2
             );
@@ -729,25 +892,44 @@ document.addEventListener("DOMContentLoaded", () => {
     function drawProjectedMeshCentered(context, canvas, projectedVertices, triangles, rotationA = 0, rotationB = 0) {
         const transformed = fitPointsToCanvas(projectedVertices, canvas, 42);
 
-        context.strokeStyle = "#ff5b6e";
-        context.lineWidth = 0.8;
+        context.strokeStyle = detectorModeSelect.value === "prnet" ? "#2cff88" : "#ff5b6e";
+        context.lineWidth = detectorModeSelect.value === "prnet" ? 0.55 : 0.8;
 
         for (const tri of triangles) {
-            const p1 = transformed[tri.a];
-            const p2 = transformed[tri.b];
-            const p3 = transformed[tri.c];
+            const p1 = projectedVertices[tri.a];
+            const p2 = projectedVertices[tri.b];
+            const p3 = projectedVertices[tri.c];
 
             if (!p1 || !p2 || !p3) continue;
+
+            // cálculo de normal simple (para shading)
+            const ux = p2.x - p1.x;
+            const uy = p2.y - p1.y;
+            const uz = p2.z - p1.z;
+
+            const vx = p3.x - p1.x;
+            const vy = p3.y - p1.y;
+            const vz = p3.z - p1.z;
+
+            const nx = uy * vz - uz * vy;
+            const ny = uz * vx - ux * vz;
+            const nz = ux * vy - uy * vx;
+
+            const intensity = Math.max(0, nz);
+
+            const color = Math.floor(80 + intensity * 175);
+
+            context.fillStyle = `rgb(0, ${color}, 120)`;
 
             context.beginPath();
             context.moveTo(p1.x, p1.y);
             context.lineTo(p2.x, p2.y);
             context.lineTo(p3.x, p3.y);
             context.closePath();
-            context.stroke();
+            context.fill();
         }
 
-        context.fillStyle = "#facc15";
+        context.fillStyle = detectorModeSelect.value === "prnet" ? "#2cff88" : "#facc15";
         for (const point of transformed) {
             context.beginPath();
             context.arc(point.x, point.y, 1.0, 0, Math.PI * 2);
@@ -795,7 +977,7 @@ document.addEventListener("DOMContentLoaded", () => {
         context.stroke();
 
         context.fillStyle = color;
-        context.font = '12px Consolas';
+        context.font = "12px Consolas";
         context.fillText(label, endX + 4, endY + 2);
     }
 
@@ -839,9 +1021,32 @@ document.addEventListener("DOMContentLoaded", () => {
         }));
     }
 
-    window.addEventListener("beforeunload", () => {
-        if (webcamStream) {
-            webcamStream.getTracks().forEach(track => track.stop());
-        }
-    });
+    function fitPointsToBox(points, boxX, boxY, boxWidth, boxHeight) {
+        if (!points || !points.length) return [];
+
+        const minX = Math.min(...points.map(p => p.x));
+        const maxX = Math.max(...points.map(p => p.x));
+        const minY = Math.min(...points.map(p => p.y));
+        const maxY = Math.max(...points.map(p => p.y));
+
+        const sourceWidth = Math.max(maxX - minX, 1);
+        const sourceHeight = Math.max(maxY - minY, 1);
+
+        const scale = Math.min(
+            boxWidth / sourceWidth,
+            boxHeight / sourceHeight
+        );
+
+        const fittedWidth = sourceWidth * scale;
+        const fittedHeight = sourceHeight * scale;
+
+        const centerOffsetX = boxX + (boxWidth - fittedWidth) / 2;
+        const centerOffsetY = boxY + (boxHeight - fittedHeight) / 2;
+
+        return points.map(point => ({
+            x: centerOffsetX + (point.x - minX) * scale,
+            y: centerOffsetY + (point.y - minY) * scale
+        }));
+    }
+
 });

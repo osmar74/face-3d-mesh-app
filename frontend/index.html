@@ -28,9 +28,22 @@
 
             <div class="control-card">
                 <h3>PROCESO</h3>
+                <label for="detectorMode">Motor de detección</label>
+                <label for="prnetOutputMode">Salida PRNet</label>
+                <select id="prnetOutputMode">
+                    <option value="landmarks">Landmarks 68</option>
+                    <option value="dense">Denso muestreado</option>
+                </select>
+                <select id="detectorMode">
+                    <option value="mediapipe">MediaPipe</option>
+                    <option value="prnet">PRNet</option>
+                </select>
+                
                 <button id="uploadButton">Validar imagen</button>
                 <button id="detectButton">Generar malla 2D</button>
                 <button id="projectButton">Proyectar malla 3D</button>
+                <button id="exportObjButton">Exportar OBJ</button>
+                
             </div>
 
             <div class="control-card">

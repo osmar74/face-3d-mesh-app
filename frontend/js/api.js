@@ -18,9 +18,15 @@ async function uploadImageToBackend(file) {
     return data;
 }
 
-async function detectLandmarksInBackend(file) {
+async function detectLandmarksInBackend(
+    file,
+    detectorMode = "mediapipe",
+    prnetOutputMode = "landmarks"
+) {
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("detector_mode", detectorMode);
+    formData.append("prnet_output_mode", prnetOutputMode);
 
     const response = await fetch(`${API_BASE_URL}/face/detect-landmarks`, {
         method: "POST",
@@ -36,9 +42,15 @@ async function detectLandmarksInBackend(file) {
     return data;
 }
 
-async function triangulateMesh(file) {
+async function triangulateMesh(
+    file,
+    detectorMode = "mediapipe",
+    prnetOutputMode = "landmarks"
+) {
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("detector_mode", detectorMode);
+    formData.append("prnet_output_mode", prnetOutputMode);
 
     const response = await fetch(`${API_BASE_URL}/face/triangulate`, {
         method: "POST",
@@ -54,12 +66,21 @@ async function triangulateMesh(file) {
     return data;
 }
 
-async function projectMesh3D(file, rotationA, rotationB, distance) {
+async function projectMesh3D(
+    file,
+    rotationA,
+    rotationB,
+    distance,
+    detectorMode = "mediapipe",
+    prnetOutputMode = "landmarks"
+) {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("rotation_a", rotationA);
     formData.append("rotation_b", rotationB);
     formData.append("distance", distance);
+    formData.append("detector_mode", detectorMode);
+    formData.append("prnet_output_mode", prnetOutputMode);
 
     const response = await fetch(`${API_BASE_URL}/face/project-mesh`, {
         method: "POST",
@@ -116,4 +137,42 @@ async function loadSavedResult(filename) {
     }
 
     return result;
+}
+
+async function exportObjFile(
+    file,
+    detectorMode = "mediapipe",
+    prnetOutputMode = "landmarks"
+) {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("detector_mode", detectorMode);
+    formData.append("prnet_output_mode", prnetOutputMode);
+
+    const response = await fetch(`${API_BASE_URL}/face/export-obj`, {
+        method: "POST",
+        body: formData
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Error exportando OBJ");
+    }
+
+    const blob = await response.blob();
+    const contentDisposition = response.headers.get("Content-Disposition");
+
+    let filename = "face_model.obj";
+
+    if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (match && match[1]) {
+            filename = match[1];
+        }
+    }
+
+    return {
+        blob,
+        filename
+    };
 }

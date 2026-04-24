@@ -24,4 +24,6 @@ samples/saved_meshes/*.json
 
 # Sistema
 .DS_Store
-Thumbs.db
+Thumbs.dbexternal/
+samples/exports/
+*.obj

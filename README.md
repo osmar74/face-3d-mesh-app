@@ -1,26 +1,5 @@
 # Face 3D Mesh App
 
-Aplicación web para detectar landmarks faciales, construir una malla 3D tipo Delaunay/Voronoi y proyectarla en una interfaz web interactiva.
-
-## Stack
-- Backend: Python 3.12, FastAPI, OpenCV, MediaPipe, NumPy, SciPy
-- Frontend: HTML, CSS, JavaScript, Canvas 2D
-
-## Arquitectura
-- MVC
-- OOP
-
-## Flujo de ramas
-- main: estable
-- dev: integración
-
-## para ejecutar
-python -m uvicorn backend.app.main:app --reload
-
-
-
-# Face 3D Mesh App
-
 Aplicación web para capturar o cargar el rostro de un usuario, detectar landmarks faciales, generar una malla por triangulación de Delaunay, proyectarla en 3D y visualizar el resultado en un dashboard técnico interactivo.
 
 ---
@@ -237,12 +216,19 @@ Donde:
 ### Procesamiento facial
 
 * Detección de landmarks faciales con MediaPipe Face Landmarker.
+* Integración de PRNet como detector alternativo experimental.
+* Selector de motor de detección:
+
+  * MediaPipe,
+  * PRNet landmarks 68,
+  * PRNet denso muestreado.
 * Uso de coordenadas 3D relativas (`x`, `y`, `z`).
 
 ### Malla y geometría
 
 * Construcción de malla con triangulación de Delaunay.
 * Filtrado de triángulos largos o fuera del contorno permitido.
+* Malla densa con PRNet usando muestreo controlado para evitar saturación visual.
 
 ### Visualización
 
@@ -254,12 +240,15 @@ Donde:
 * Panel de proyección 3D interactiva.
 * Panel de respuesta del backend.
 * Mini eje XYZ en el visor 3D.
+* Diferenciación visual entre resultados de MediaPipe y PRNet.
 
 ### Interacción
 
 * Rotación horizontal.
 * Rotación vertical.
 * Zoom por distancia.
+* Selección de motor de detección.
+* Selección de salida PRNet.
 * Guardado de resultados.
 * Carga de resultados guardados.
 
@@ -425,30 +414,143 @@ El contenido puede incluir:
 
 ---
 
-## 17. Flujo de trabajo con Git
+## 17. Pasos de Git paso a paso
 
-### Inicialización
+### 17.1 Inicializar el repositorio local
+
+Desde la raíz del proyecto:
 
 ```cmd
 git init
+```
+
+### 17.2 Crear o renombrar la rama principal
+
+```cmd
 git branch -M main
+```
+
+### 17.3 Crear la rama de desarrollo
+
+```cmd
 git checkout -b dev
 ```
 
-### Trabajo recomendado
+### 17.4 Verificar ramas
 
-* `main` → rama estable
-* `dev` → integración de desarrollo
+```cmd
+git branch
+```
 
-### Ciclo sugerido
+Resultado esperado:
 
-1. trabajar en `dev`,
-2. hacer commits pequeños por etapa,
-3. revisar cambios con GitLens,
-4. comparar `dev` vs `main`,
-5. fusionar a `main` cuando esté validado.
+```text
+* dev
+  main
+```
 
-### Comandos útiles
+### 17.5 Configurar identidad de Git
+
+Si todavía no está configurada en tu equipo:
+
+```cmd
+git config --global user.name "TU_NOMBRE"
+git config --global user.email "TU_CORREO"
+```
+
+Verificación:
+
+```cmd
+git config --global --list
+```
+
+### 17.6 Agregar archivos al área de preparación
+
+```cmd
+git add .
+```
+
+### 17.7 Crear el primer commit
+
+```cmd
+git commit -m "chore: crear estructura base del proyecto"
+```
+
+### 17.8 Ver historial de commits
+
+```cmd
+git log --oneline
+```
+
+### 17.9 Conectar el repositorio con GitHub
+
+Primero crea el repositorio vacío en GitHub. Luego agrega el remoto:
+
+```cmd
+git remote add origin https://github.com/TU_USUARIO/face-3d-mesh-app.git
+```
+
+Verificación:
+
+```cmd
+git remote -v
+```
+
+### 17.10 Subir la rama main
+
+```cmd
+git checkout main
+git push -u origin main
+```
+
+### 17.11 Subir la rama dev
+
+```cmd
+git checkout dev
+git push -u origin dev
+```
+
+### 17.12 Flujo de trabajo diario en dev
+
+Antes de trabajar:
+
+```cmd
+git checkout dev
+git pull origin dev
+```
+
+Después de hacer cambios:
+
+```cmd
+git status
+git add .
+git commit -m "mensaje claro del cambio"
+git push origin dev
+```
+
+### 17.13 Revisar diferencias entre ramas
+
+```cmd
+git checkout dev
+git diff main..dev
+```
+
+### 17.14 Fusionar dev en main cuando todo esté validado
+
+```cmd
+git checkout main
+git pull origin main
+git merge dev
+git push origin main
+```
+
+### 17.15 Volver a dev después del merge
+
+```cmd
+git checkout dev
+```
+
+### 17.16 Comandos más usados en este proyecto
 
 ```cmd
 git status
@@ -456,9 +558,20 @@ git branch
 git add .
 git commit -m "mensaje"
 git log --oneline
+git diff main..dev
+git checkout dev
+git checkout main
+git push origin dev
+git push origin main
 ```
 
----
+### 17.17 Recomendación práctica para este proyecto
+
+* Trabajar siempre en `dev`.
+* Hacer commits pequeños por etapa.
+* Revisar cada cambio con GitLens.
+* No mezclar cambios grandes sin probar primero backend y frontend.
+* Fusionar a `main` solo cuando la etapa esté validada.
 
 ## 18. Uso recomendado de GitLens
 
@@ -481,13 +594,21 @@ Momentos clave:
 
 ## 19. Decisiones técnicas importantes
 
-### Detección facial
+### Detección facial principal
 
-Se eligió **MediaPipe Face Landmarker** porque ofrece landmarks faciales 3D modernos y es compatible con el objetivo del proyecto.
+Se eligió **MediaPipe Face Landmarker** como motor principal porque ofrece landmarks faciales 3D modernos, es estable, rápido y funciona bien para carga de imágenes y webcam.
+
+### Detector alternativo PRNet
+
+En una segunda fase se integró **PRNet (Position Map Regression Network)** como motor alternativo experimental. PRNet permite obtener landmarks básicos de 68 puntos y una salida densa muestreada, útil para comparar resultados con MediaPipe y explorar reconstrucción facial más avanzada.
+
+### Selector de motores
+
+El backend fue refactorizado con una interfaz común y una fábrica de detectores para permitir cambiar entre MediaPipe y PRNet sin modificar manualmente los controladores.
 
 ### Triangulación
 
-Se usó **Delaunay** porque permite construir una malla facial limpia a partir de puntos dispersos.
+Se usó **Delaunay** porque permite construir una malla facial a partir de puntos dispersos.
 
 ### Proyección
 
@@ -516,6 +637,8 @@ Se probaron extensiones sintéticas para frente y laterales, pero finalmente se 
 * No realiza modelado de cabeza completa.
 * La proyección 3D es una visualización geométrica proyectada, no una malla 3D sólida renderizada con motor 3D.
 * La webcam trabaja por captura de frame, no por streaming continuo con landmarks en tiempo real.
+* PRNet funciona como módulo experimental y puede ser más lento que MediaPipe.
+* PRNet denso requiere muestreo y filtrado para evitar exceso de puntos y triangulación saturada.
 
 ---
 
@@ -527,7 +650,9 @@ Se probaron extensiones sintéticas para frente y laterales, pero finalmente se 
 * Exportación de resultados a otros formatos.
 * Render 3D con WebGL o Three.js.
 * Modo de análisis multi-rostro.
-* Integración opcional con un modelo 3D facial más denso.
+* Texturizado facial y exportación `.obj`.
+* Alineación más precisa de PRNet usando bounding box facial.
+* Comparación cuantitativa entre MediaPipe y PRNet.
 
 ---
 
@@ -537,7 +662,9 @@ Se probaron extensiones sintéticas para frente y laterales, pero finalmente se 
 
 * [ ] `/health` responde correctamente.
 * [ ] `/api/face/upload-image` valida imagen.
-* [ ] `/api/face/detect-landmarks` devuelve landmarks.
+* [ ] `/api/face/detect-landmarks` devuelve landmarks con MediaPipe.
+* [ ] `/api/face/detect-landmarks` devuelve landmarks con PRNet 68.
+* [ ] `/api/face/detect-landmarks` devuelve puntos con PRNet denso muestreado.
 * [ ] `/api/face/triangulate` devuelve vértices y triángulos.
 * [ ] `/api/face/project-mesh` devuelve proyección 3D.
 * [ ] `/api/storage/save` guarda un resultado.
@@ -553,7 +680,10 @@ Se probaron extensiones sintéticas para frente y laterales, pero finalmente se 
 * [ ] se muestra proyección 3D,
 * [ ] el eje XYZ aparece,
 * [ ] la webcam captura un frame,
-* [ ] se puede guardar y cargar un resultado.
+* [ ] se puede guardar y cargar un resultado,
+* [ ] funciona el selector MediaPipe / PRNet,
+* [ ] funciona PRNet landmarks 68,
+* [ ] funciona PRNet denso muestreado.
 
 ---
 
@@ -575,3 +705,32 @@ Para ejecutar correctamente el proyecto:
 6. luego probar con webcam,
 7. guardar al menos un resultado,
 8. validar carga posterior.
+
+Exportación de modelo 3D (.OBJ)
+
+El sistema permite exportar la malla facial generada a un archivo en formato .obj, compatible con herramientas de modelado 3D como Blender, MeshLab, Unity y Unreal Engine.
+
+Características:
+Generación de vértices 3D (v).
+Generación de caras triangulares (f) mediante triangulación de Delaunay.
+Compatible con:
+MediaPipe (malla densa estable),
+PRNet landmarks (68 puntos),
+PRNet denso muestreado.
+Descarga directa desde el frontend mediante botón Exportar OBJ.
+Flujo de exportación:
+Imagen → Detección de landmarks → Construcción de malla → Exportación OBJ
+Endpoint:
+POST /api/face/export-obj
+Parámetros:
+file: imagen de entrada
+detector_mode: mediapipe | prnet
+prnet_output_mode: landmarks | dense
+Resultado:
+Archivo .obj descargable automáticamente desde el navegador.
+📌 También agrega en “Funcionalidades”
+
+Dentro de tu sección de funcionalidades añade:
+
+- Exportación de malla facial a formato OBJ para uso en software 3D.
+
