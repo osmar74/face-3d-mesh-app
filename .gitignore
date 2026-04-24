@@ -27,3 +27,4 @@ samples/saved_meshes/*.json
 Thumbs.dbexternal/
 samples/exports/
 *.obj
+external/
