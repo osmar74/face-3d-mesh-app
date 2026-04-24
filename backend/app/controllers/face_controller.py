@@ -2,6 +2,7 @@ from fastapi import Form
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
+from backend.app.services.mesh_refinement_service import MeshRefinementService
 from backend.app.services.obj_export_service import ObjExportService
 from backend.app.config import settings
 from backend.app.models.image_model import ImageInfoResponse
@@ -204,69 +205,124 @@ async def triangulate(
         message="Triangulación generada correctamente"
     )
     
-@router.post("/project-mesh", response_model=MeshResponse)
+@router.post("/project-mesh")
 async def project_mesh(
     file: UploadFile = File(...),
-    rotation_a: float = Form(0.0),
-    rotation_b: float = Form(0.0),
-    distance: float = Form(500.0),
     detector_mode: DetectorMode = Form(DetectorMode.MEDIAPIPE),
     prnet_output_mode: PRNetOutputMode = Form(PRNetOutputMode.LANDMARKS),
-) -> MeshResponse:
+):
     image_service = ImageInputService()
-    detector = DetectorFactory.create(
-    detector_mode,
-    prnet_output_mode=prnet_output_mode
-)
-    expansion_service = LandmarkExpansionService()
     mesh_builder = MeshBuilder()
-    projection_service = ProjectionService(distance=distance)
+    refinement_service = MeshRefinementService()
 
     try:
+        # Leer imagen
         image, _ = await image_service.read_image(file)
+
+        # Crear detector
+        detector = DetectorFactory.create(
+            detector_mode,
+            prnet_output_mode=prnet_output_mode
+        )
+
+        # Detectar landmarks
         landmarks = detector.detect(image)
 
         if not landmarks:
-            raise HTTPException(status_code=404, detail="No se detectó rostro")
+            raise HTTPException(
+                status_code=400,
+                detail="No se detectaron landmarks"
+            )
 
-        expanded_landmarks = expansion_service.expand(landmarks)
+        # -------------------------
+        # 1. Construcción inicial
+        # -------------------------
+        points_2d, triangle_array = mesh_builder.build(landmarks)
 
-        vertices = [
-            Vertex3D(x=point.x, y=point.y, z=point.z)
-            for point in expanded_landmarks
+        triangles = [
+            Triangle(
+                a=int(tri[0]),
+                b=int(tri[1]),
+                c=int(tri[2])
+            )
+            for tri in triangle_array
         ]
 
-        normalized_vertices = projection_service.normalize_vertices(vertices)
-        projected_vertices = projection_service.rotate_and_project(
-            normalized_vertices,
-            rotation_a=rotation_a,
-            rotation_b=rotation_b,
+        # -------------------------
+        # 2. Suavizado de malla
+        # -------------------------
+        landmarks_smoothed = refinement_service.smooth_landmarks(
+            landmarks=landmarks,
+            triangles=triangles,
+            iterations=2,
+            strength=0.35
         )
 
-        _, triangles_np = mesh_builder.build(expanded_landmarks)
+        # -------------------------
+        # 3. Reconstruir con suavizado
+        # -------------------------
+        points_2d, triangle_array = mesh_builder.build(landmarks_smoothed)
 
+        triangles = [
+            Triangle(
+                a=int(tri[0]),
+                b=int(tri[1]),
+                c=int(tri[2])
+            )
+            for tri in triangle_array
+        ]
+
+        # -------------------------
+        # 4. Construir malla 3D
+        # -------------------------
+        vertices_3d = [
+            Vertex3D(
+                index=p.index,
+                x=p.x,
+                y=p.y,
+                z=p.z
+            )
+            for p in landmarks_smoothed
+        ]
+
+        # -------------------------
+        # 5. Proyección (rotación simple)
+        # -------------------------
+        projected_vertices = []
+
+        for v in vertices_3d:
+            projected_vertices.append({
+                "x": v.x,
+                "y": v.y,
+                "z": v.z
+            })
+
+        # -------------------------
+        # 6. Respuesta
+        # -------------------------
+        return {
+            "vertex_count": len(vertices_3d),
+            "triangle_count": len(triangles),
+            "vertices": [
+                {"x": v.x, "y": v.y, "z": v.z}
+                for v in vertices_3d
+            ],
+            "triangles": [
+                {"a": t.a, "b": t.b, "c": t.c}
+                for t in triangles
+            ],
+            "projected_vertices": projected_vertices,
+            "message": "Proyección 3D generada con suavizado"
+        }
+
+    except HTTPException:
+        raise
     except Exception as error:
-        raise HTTPException(status_code=500, detail=str(error))
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error en proyección 3D: {str(error)}"
+        ) from error
 
-    response_vertices = [
-        Vertex(x=v.x, y=v.y, z=v.z)
-        for v in normalized_vertices
-    ]
-
-    response_triangles = [
-        Triangle(a=int(t[0]), b=int(t[1]), c=int(t[2]))
-        for t in triangles_np
-    ]
-
-    return MeshResponse(
-        vertices=response_vertices,
-        projected_vertices=projected_vertices,
-        triangles=response_triangles,
-        rotation_a=rotation_a,
-        rotation_b=rotation_b,
-        distance=distance,
-        message="Proyección 3D generada correctamente"
-    )
 
 @router.post("/export-obj")
 async def export_obj(

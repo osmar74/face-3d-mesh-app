@@ -896,18 +896,37 @@ document.addEventListener("DOMContentLoaded", () => {
         context.lineWidth = detectorModeSelect.value === "prnet" ? 0.55 : 0.8;
 
         for (const tri of triangles) {
-            const p1 = transformed[tri.a];
-            const p2 = transformed[tri.b];
-            const p3 = transformed[tri.c];
+            const p1 = projectedVertices[tri.a];
+            const p2 = projectedVertices[tri.b];
+            const p3 = projectedVertices[tri.c];
 
             if (!p1 || !p2 || !p3) continue;
+
+            // cálculo de normal simple (para shading)
+            const ux = p2.x - p1.x;
+            const uy = p2.y - p1.y;
+            const uz = p2.z - p1.z;
+
+            const vx = p3.x - p1.x;
+            const vy = p3.y - p1.y;
+            const vz = p3.z - p1.z;
+
+            const nx = uy * vz - uz * vy;
+            const ny = uz * vx - ux * vz;
+            const nz = ux * vy - uy * vx;
+
+            const intensity = Math.max(0, nz);
+
+            const color = Math.floor(80 + intensity * 175);
+
+            context.fillStyle = `rgb(0, ${color}, 120)`;
 
             context.beginPath();
             context.moveTo(p1.x, p1.y);
             context.lineTo(p2.x, p2.y);
             context.lineTo(p3.x, p3.y);
             context.closePath();
-            context.stroke();
+            context.fill();
         }
 
         context.fillStyle = detectorModeSelect.value === "prnet" ? "#2cff88" : "#facc15";
