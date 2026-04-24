@@ -193,7 +193,7 @@ async def project_mesh(
     distance: float = Form(500.0),
 ) -> MeshResponse:
     image_service = ImageInputService()
-    detector = FaceMeshDetector()
+    detector = DetectorFactory.create(DetectorMode.MEDIAPIPE)
     expansion_service = LandmarkExpansionService()
     mesh_builder = MeshBuilder()
     projection_service = ProjectionService(distance=distance)
