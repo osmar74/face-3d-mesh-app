@@ -107,9 +107,12 @@ async def upload_image(file: UploadFile = File(...)) -> ImageInfoResponse:
 
 
 @router.post("/detect-landmarks", response_model=FaceLandmarksResponse)
-async def detect_landmarks(file: UploadFile = File(...)) -> FaceLandmarksResponse:
+async def detect_landmarks(
+    file: UploadFile = File(...),
+    detector_mode: DetectorMode = Form(DetectorMode.MEDIAPIPE),
+) -> FaceLandmarksResponse:
     image_service = ImageInputService()
-    detector = DetectorFactory.create(DetectorMode.PRNET)
+    detector = DetectorFactory.create(detector_mode)
     expansion_service = LandmarkExpansionService()
 
     if not file.filename:
@@ -151,9 +154,12 @@ async def detect_landmarks(file: UploadFile = File(...)) -> FaceLandmarksRespons
     )
 
 @router.post("/triangulate", response_model=MeshResponse)
-async def triangulate(file: UploadFile = File(...)) -> MeshResponse:
+async def triangulate(
+    file: UploadFile = File(...),
+    detector_mode: DetectorMode = Form(DetectorMode.MEDIAPIPE),
+) -> MeshResponse:
     image_service = ImageInputService()
-    detector = DetectorFactory.create(DetectorMode.PRNET)
+    detector = DetectorFactory.create(detector_mode)
     expansion_service = LandmarkExpansionService()
     mesh_builder = MeshBuilder()
 
@@ -193,9 +199,10 @@ async def project_mesh(
     rotation_a: float = Form(0.0),
     rotation_b: float = Form(0.0),
     distance: float = Form(500.0),
+    detector_mode: DetectorMode = Form(DetectorMode.MEDIAPIPE),
 ) -> MeshResponse:
     image_service = ImageInputService()
-    detector = DetectorFactory.create(DetectorMode.PRNET)
+    detector = DetectorFactory.create(detector_mode)
     expansion_service = LandmarkExpansionService()
     mesh_builder = MeshBuilder()
     projection_service = ProjectionService(distance=distance)

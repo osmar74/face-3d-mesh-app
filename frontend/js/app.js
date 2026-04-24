@@ -1,4 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
+    const detectorModeSelect = document.getElementById("detectorMode");
     const imageInput = document.getElementById("imageInput");
     const uploadButton = document.getElementById("uploadButton");
     const detectButton = document.getElementById("detectButton");
@@ -195,15 +196,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     detectButton.addEventListener("click", async () => {
         if (!selectedFile) {
-            uploadStatus.textContent = "Primero selecciona una imagen.";
+            uploadStatus.textContent = `Procesando con ${detectorMode.toUpperCase()}...`;
             return;
         }
 
         uploadStatus.textContent = "Detectando landmarks y generando malla 2D...";
 
         try {
-            const landmarksResult = await detectLandmarksInBackend(selectedFile);
-            const meshResult = await triangulateMesh(selectedFile);
+            const detectorMode = detectorModeSelect.value;
+
+            const landmarksResult = await detectLandmarksInBackend(selectedFile, detectorMode);
+            const meshResult = await triangulateMesh(selectedFile, detectorMode);
 
             currentLandmarksResult = landmarksResult;
             currentMesh2DResult = meshResult;
@@ -331,11 +334,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const distance = parseFloat(distanceInput.value);
 
         try {
+            const detectorMode = detectorModeSelect.value;
+
             const result = await projectMesh3D(
                 selectedFile,
                 rotationA,
                 rotationB,
-                distance
+                distance,
+                detectorMode
             );
 
             currentProjectionResult = result;
