@@ -29,11 +29,11 @@ class MeshBuilder:
         face_height = max_y - min_y
 
         # Elipse de contorno permitida
-        ellipse_rx = face_width * 0.52
-        ellipse_ry = face_height * 0.62
+        ellipse_rx = face_width * 0.46
+        ellipse_ry = face_height * 0.58
 
         # Límite de arista para evitar triángulos demasiado largos
-        max_edge_length = max(face_width, face_height) * 0.18
+        max_edge_length = max(face_width, face_height) * 0.11
 
         filtered_triangles = []
 
