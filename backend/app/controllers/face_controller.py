@@ -20,6 +20,7 @@ from backend.app.services.projection_service import ProjectionService
 
 from backend.app.models.detector_mode_model import DetectorMode
 from backend.app.services.detector_factory import DetectorFactory
+from backend.app.models.detector_mode_model import DetectorMode, PRNetOutputMode
 
 from backend.app.models.mesh_model import (
     MeshData,
@@ -110,9 +111,13 @@ async def upload_image(file: UploadFile = File(...)) -> ImageInfoResponse:
 async def detect_landmarks(
     file: UploadFile = File(...),
     detector_mode: DetectorMode = Form(DetectorMode.MEDIAPIPE),
+    prnet_output_mode: PRNetOutputMode = Form(PRNetOutputMode.LANDMARKS),
 ) -> FaceLandmarksResponse:
     image_service = ImageInputService()
-    detector = DetectorFactory.create(detector_mode)
+    detector = DetectorFactory.create(
+    detector_mode,
+    prnet_output_mode=prnet_output_mode
+)
     expansion_service = LandmarkExpansionService()
 
     if not file.filename:
@@ -157,9 +162,13 @@ async def detect_landmarks(
 async def triangulate(
     file: UploadFile = File(...),
     detector_mode: DetectorMode = Form(DetectorMode.MEDIAPIPE),
+    prnet_output_mode: PRNetOutputMode = Form(PRNetOutputMode.LANDMARKS),
 ) -> MeshResponse:
     image_service = ImageInputService()
-    detector = DetectorFactory.create(detector_mode)
+    detector = DetectorFactory.create(
+    detector_mode,
+    prnet_output_mode=prnet_output_mode
+)
     expansion_service = LandmarkExpansionService()
     mesh_builder = MeshBuilder()
 
@@ -200,9 +209,13 @@ async def project_mesh(
     rotation_b: float = Form(0.0),
     distance: float = Form(500.0),
     detector_mode: DetectorMode = Form(DetectorMode.MEDIAPIPE),
+    prnet_output_mode: PRNetOutputMode = Form(PRNetOutputMode.LANDMARKS),
 ) -> MeshResponse:
     image_service = ImageInputService()
-    detector = DetectorFactory.create(detector_mode)
+    detector = DetectorFactory.create(
+    detector_mode,
+    prnet_output_mode=prnet_output_mode
+)
     expansion_service = LandmarkExpansionService()
     mesh_builder = MeshBuilder()
     projection_service = ProjectionService(distance=distance)

@@ -12,7 +12,9 @@ from backend.app.services.interfaces.face_detector_interface import FaceDetector
 
 
 class PRNetFaceDetector(FaceDetectorInterface):
-    def __init__(self) -> None:
+    def __init__(self, output_mode: str = "landmarks") -> None:
+        self.output_mode = output_mode
+
         self.prnet_path = os.path.join(os.getcwd(), "external", "prnet")
         self.model_path = os.path.join(self.prnet_path, "results", "latest.pth")
 
@@ -51,8 +53,19 @@ class PRNetFaceDetector(FaceDetectorInterface):
         pos = pos.squeeze(0)
         pos = pos.permute(1, 2, 0)
 
-        landmarks = self.prn.get_landmarks(pos)
+        if self.output_mode == "dense":
+            vertices = self.prn.get_vertices(pos)
+            return self.convert_dense_vertices(vertices, original_w, original_h)
 
+        landmarks = self.prn.get_landmarks(pos)
+        return self.convert_landmarks(landmarks, original_w, original_h)
+
+    def convert_landmarks(
+        self,
+        landmarks: np.ndarray,
+        original_w: int,
+        original_h: int
+    ) -> List[FaceLandmark]:
         output: List[FaceLandmark] = []
 
         for index, point in enumerate(landmarks):
@@ -68,6 +81,36 @@ class PRNetFaceDetector(FaceDetectorInterface):
                     y=y_img,
                     z=float(z),
                     source="prnet"
+                )
+            )
+
+        return output
+
+    def convert_dense_vertices(
+        self,
+        vertices: np.ndarray,
+        original_w: int,
+        original_h: int
+    ) -> List[FaceLandmark]:
+        output: List[FaceLandmark] = []
+
+        max_points = 800
+        step = max(1, len(vertices) // max_points)
+        sampled_vertices = vertices[::step]
+
+        for index, vertex in enumerate(sampled_vertices):
+            x, y, z = vertex
+
+            x_img = (float(x) / 256.0) * original_w
+            y_img = (float(y) / 256.0) * original_h
+
+            output.append(
+                FaceLandmark(
+                    index=index,
+                    x=x_img,
+                    y=y_img,
+                    z=float(z),
+                    source="prnet_dense"
                 )
             )
 

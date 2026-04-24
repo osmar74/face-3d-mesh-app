@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const loadButton = document.getElementById("loadButton");
 
     const detectorModeSelect = document.getElementById("detectorMode");
+    const prnetOutputModeSelect = document.getElementById("prnetOutputMode");
     const savedFilesSelect = document.getElementById("savedFilesSelect");
 
     const rotationAInput = document.getElementById("rotationA");
@@ -198,11 +199,23 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const detectorMode = detectorModeSelect.value;
-        uploadStatus.textContent = `Procesando con ${detectorMode.toUpperCase()}...`;
+        const prnetOutputMode = prnetOutputModeSelect.value;
+
+        uploadStatus.textContent =
+         `Procesando con ${detectorMode.toUpperCase()} (${prnetOutputMode})...`;
 
         try {
-            const landmarksResult = await detectLandmarksInBackend(selectedFile, detectorMode);
-            const meshResult = await triangulateMesh(selectedFile, detectorMode);
+            const landmarksResult = await detectLandmarksInBackend(
+            selectedFile,
+            detectorMode,
+            prnetOutputMode
+        );
+
+        const meshResult = await triangulateMesh(
+            selectedFile,
+            detectorMode,
+            prnetOutputMode
+        );
 
             currentLandmarksResult = landmarksResult;
             currentMesh2DResult = meshResult;
@@ -212,6 +225,7 @@ document.addEventListener("DOMContentLoaded", () => {
             backendResponse.textContent = JSON.stringify(
                 {
                     detector_mode: detectorMode,
+                    prnet_output_mode: prnetOutputMode,
                     landmark_count: landmarksResult.landmark_count,
                     mesh_vertices: meshResult.vertices.length,
                     mesh_triangles: meshResult.triangles.length,
@@ -243,6 +257,7 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             const payload = {
                 detector_mode: detectorModeSelect.value,
+                prnet_output_mode: prnetOutputModeSelect.value,
                 landmarks: currentLandmarksResult,
                 mesh2d: currentMesh2DResult,
                 projection3d: currentProjectionResult,
@@ -286,6 +301,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (data.detector_mode && detectorModeSelect) {
                 detectorModeSelect.value = data.detector_mode;
+            }
+
+            if (data.prnet_output_mode && prnetOutputModeSelect) {
+                prnetOutputModeSelect.value = data.prnet_output_mode;
             }
 
             if (data.scene) {
@@ -336,8 +355,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const detectorMode = detectorModeSelect.value;
+        const prnetOutputMode = prnetOutputModeSelect.value;
 
-        uploadStatus.textContent = `Calculando proyección 3D con ${detectorMode.toUpperCase()}...`;
+        uploadStatus.textContent =
+            `Calculando proyección 3D con ${detectorMode.toUpperCase()} (${prnetOutputMode})...`;
 
         const rotationA = parseFloat(rotationAInput.value);
         const rotationB = parseFloat(rotationBInput.value);
@@ -349,7 +370,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 rotationA,
                 rotationB,
                 distance,
-                detectorMode
+                detectorMode,
+                prnetOutputMode
             );
 
             currentProjectionResult = result;
@@ -359,6 +381,7 @@ document.addEventListener("DOMContentLoaded", () => {
             backendResponse.textContent = JSON.stringify(
                 {
                     detector_mode: detectorMode,
+                    prnet_output_mode: prnetOutputMode,
                     vertices: result.vertices.length,
                     projected_vertices: result.projected_vertices.length,
                     triangles: result.triangles.length,

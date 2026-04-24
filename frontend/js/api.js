@@ -18,10 +18,15 @@ async function uploadImageToBackend(file) {
     return data;
 }
 
-async function detectLandmarksInBackend(file, detectorMode = "mediapipe") {
+async function detectLandmarksInBackend(
+    file,
+    detectorMode = "mediapipe",
+    prnetOutputMode = "landmarks"
+) {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("detector_mode", detectorMode);
+    formData.append("prnet_output_mode", prnetOutputMode);
 
     const response = await fetch(`${API_BASE_URL}/face/detect-landmarks`, {
         method: "POST",
@@ -37,10 +42,15 @@ async function detectLandmarksInBackend(file, detectorMode = "mediapipe") {
     return data;
 }
 
-async function triangulateMesh(file, detectorMode = "mediapipe") {
+async function triangulateMesh(
+    file,
+    detectorMode = "mediapipe",
+    prnetOutputMode = "landmarks"
+) {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("detector_mode", detectorMode);
+    formData.append("prnet_output_mode", prnetOutputMode);
 
     const response = await fetch(`${API_BASE_URL}/face/triangulate`, {
         method: "POST",
@@ -56,13 +66,21 @@ async function triangulateMesh(file, detectorMode = "mediapipe") {
     return data;
 }
 
-async function projectMesh3D(file, rotationA, rotationB, distance, detectorMode = "mediapipe") {
+async function projectMesh3D(
+    file,
+    rotationA,
+    rotationB,
+    distance,
+    detectorMode = "mediapipe",
+    prnetOutputMode = "landmarks"
+) {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("rotation_a", rotationA);
     formData.append("rotation_b", rotationB);
     formData.append("distance", distance);
     formData.append("detector_mode", detectorMode);
+    formData.append("prnet_output_mode", prnetOutputMode);
 
     const response = await fetch(`${API_BASE_URL}/face/project-mesh`, {
         method: "POST",
