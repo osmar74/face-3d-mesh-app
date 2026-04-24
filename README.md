@@ -705,3 +705,32 @@ Para ejecutar correctamente el proyecto:
 6. luego probar con webcam,
 7. guardar al menos un resultado,
 8. validar carga posterior.
+
+Exportación de modelo 3D (.OBJ)
+
+El sistema permite exportar la malla facial generada a un archivo en formato .obj, compatible con herramientas de modelado 3D como Blender, MeshLab, Unity y Unreal Engine.
+
+Características:
+Generación de vértices 3D (v).
+Generación de caras triangulares (f) mediante triangulación de Delaunay.
+Compatible con:
+MediaPipe (malla densa estable),
+PRNet landmarks (68 puntos),
+PRNet denso muestreado.
+Descarga directa desde el frontend mediante botón Exportar OBJ.
+Flujo de exportación:
+Imagen → Detección de landmarks → Construcción de malla → Exportación OBJ
+Endpoint:
+POST /api/face/export-obj
+Parámetros:
+file: imagen de entrada
+detector_mode: mediapipe | prnet
+prnet_output_mode: landmarks | dense
+Resultado:
+Archivo .obj descargable automáticamente desde el navegador.
+📌 También agrega en “Funcionalidades”
+
+Dentro de tu sección de funcionalidades añade:
+
+- Exportación de malla facial a formato OBJ para uso en software 3D.
+
