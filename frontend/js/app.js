@@ -651,20 +651,43 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function drawLandmarksOverlayOnImage(context, canvas, landmarks) {
-        if (!loadedImage || !landmarks) return;
+        if (!loadedImage || !landmarks || !landmarks.length) return;
 
         const { offsetX, offsetY, scaleX, scaleY } = getImageFitTransform(canvas, loadedImage);
 
+        const imageDrawWidth = loadedImage.width * scaleX;
+        const imageDrawHeight = loadedImage.height * scaleY;
+
+        const isPrnetDense = landmarks.some(point => point.source === "prnet_dense");
+
+        if (isPrnetDense) {
+            const fittedPoints = fitPointsToBox(
+            landmarks,
+            offsetX + imageDrawWidth * 0.31,
+            offsetY + imageDrawHeight * 0.11,
+            imageDrawWidth * 0.38,
+            imageDrawHeight * 0.58
+        );
+
+            context.fillStyle = "#2cff88";
+
+            for (const point of fittedPoints) {
+                context.beginPath();
+                context.arc(point.x, point.y, 1.5, 0, Math.PI * 2);
+                context.fill();
+            }
+
+            return;
+        }
+
+        context.fillStyle = "#2cff88";
+
         for (const point of landmarks) {
+            const x = offsetX + point.x * scaleX;
+            const y = offsetY + point.y * scaleY;
+
             context.beginPath();
-            context.fillStyle = point.source === "prnet" ? "#facc15" : "#2cff88";
-            context.arc(
-                offsetX + point.x * scaleX,
-                offsetY + point.y * scaleY,
-                point.source === "prnet" ? 2.0 : 1.4,
-                0,
-                Math.PI * 2
-            );
+            context.arc(x, y, 1.5, 0, Math.PI * 2);
             context.fill();
         }
     }
@@ -696,20 +719,47 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const { offsetX, offsetY, scaleX, scaleY } = getImageFitTransform(canvas, loadedImage);
 
+        const imageDrawWidth = loadedImage.width * scaleX;
+        const imageDrawHeight = loadedImage.height * scaleY;
+
+        const isPrnetDense =
+            detectorModeSelect.value === "prnet" &&
+            prnetOutputModeSelect.value === "dense";
+
+        let drawableVertices = null;
+
+        if (isPrnetDense) {
+            drawableVertices = fitPointsToBox(
+                vertices,
+                offsetX + imageDrawWidth * 0.31,
+                offsetY + imageDrawHeight * 0.11,
+                imageDrawWidth * 0.38,
+                imageDrawHeight * 0.58
+            );
+        }
+
         context.strokeStyle = "#2cff88";
-        context.lineWidth = 0.8;
+        context.lineWidth = isPrnetDense ? 0.45 : 0.8;
 
         for (const tri of triangles) {
-            const p1 = vertices[tri.a];
-            const p2 = vertices[tri.b];
-            const p3 = vertices[tri.c];
+            const p1 = isPrnetDense ? drawableVertices[tri.a] : vertices[tri.a];
+            const p2 = isPrnetDense ? drawableVertices[tri.b] : vertices[tri.b];
+            const p3 = isPrnetDense ? drawableVertices[tri.c] : vertices[tri.c];
 
             if (!p1 || !p2 || !p3) continue;
 
             context.beginPath();
-            context.moveTo(offsetX + p1.x * scaleX, offsetY + p1.y * scaleY);
-            context.lineTo(offsetX + p2.x * scaleX, offsetY + p2.y * scaleY);
-            context.lineTo(offsetX + p3.x * scaleX, offsetY + p3.y * scaleY);
+
+            if (isPrnetDense) {
+                context.moveTo(p1.x, p1.y);
+                context.lineTo(p2.x, p2.y);
+                context.lineTo(p3.x, p3.y);
+            } else {
+                context.moveTo(offsetX + p1.x * scaleX, offsetY + p1.y * scaleY);
+                context.lineTo(offsetX + p2.x * scaleX, offsetY + p2.y * scaleY);
+                context.lineTo(offsetX + p3.x * scaleX, offsetY + p3.y * scaleY);
+            }
+
             context.closePath();
             context.stroke();
         }
@@ -720,14 +770,40 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const { offsetX, offsetY, scaleX, scaleY } = getImageFitTransform(canvas, loadedImage);
 
+        const imageDrawWidth = loadedImage.width * scaleX;
+        const imageDrawHeight = loadedImage.height * scaleY;
+
+        const isPrnetDense =
+            detectorModeSelect.value === "prnet" &&
+            prnetOutputModeSelect.value === "dense";
+
+        let drawableVertices = null;
+
+        if (isPrnetDense) {
+            drawableVertices = fitPointsToBox(
+                vertices,
+                offsetX + imageDrawWidth * 0.31,
+                offsetY + imageDrawHeight * 0.11,
+                imageDrawWidth * 0.38,
+                imageDrawHeight * 0.58
+            );
+        }
+
         context.fillStyle = "#2cff88";
 
-        for (const point of vertices) {
+        for (let index = 0; index < vertices.length; index += 1) {
+            const point = isPrnetDense ? drawableVertices[index] : vertices[index];
+
+            if (!point) continue;
+
+            const x = isPrnetDense ? point.x : offsetX + point.x * scaleX;
+            const y = isPrnetDense ? point.y : offsetY + point.y * scaleY;
+
             context.beginPath();
             context.arc(
-                offsetX + point.x * scaleX,
-                offsetY + point.y * scaleY,
-                1.1,
+                x,
+                y,
+                isPrnetDense ? 0.9 : 1.1,
                 0,
                 Math.PI * 2
             );
@@ -876,4 +952,33 @@ document.addEventListener("DOMContentLoaded", () => {
             y: offsetY + (point.y - minY) * scale
         }));
     }
+
+    function fitPointsToBox(points, boxX, boxY, boxWidth, boxHeight) {
+        if (!points || !points.length) return [];
+
+        const minX = Math.min(...points.map(p => p.x));
+        const maxX = Math.max(...points.map(p => p.x));
+        const minY = Math.min(...points.map(p => p.y));
+        const maxY = Math.max(...points.map(p => p.y));
+
+        const sourceWidth = Math.max(maxX - minX, 1);
+        const sourceHeight = Math.max(maxY - minY, 1);
+
+        const scale = Math.min(
+            boxWidth / sourceWidth,
+            boxHeight / sourceHeight
+        );
+
+        const fittedWidth = sourceWidth * scale;
+        const fittedHeight = sourceHeight * scale;
+
+        const centerOffsetX = boxX + (boxWidth - fittedWidth) / 2;
+        const centerOffsetY = boxY + (boxHeight - fittedHeight) / 2;
+
+        return points.map(point => ({
+            x: centerOffsetX + (point.x - minX) * scale,
+            y: centerOffsetY + (point.y - minY) * scale
+        }));
+    }
+
 });
