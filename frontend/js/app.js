@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const webcamVideo = document.getElementById("webcamVideo");
     const captureCanvas = document.getElementById("captureCanvas");
 
+    const exportObjButton = document.getElementById("exportObjButton");
     const uploadButton = document.getElementById("uploadButton");
     const detectButton = document.getElementById("detectButton");
     const projectButton = document.getElementById("projectButton");
@@ -246,6 +247,54 @@ document.addEventListener("DOMContentLoaded", () => {
 
     projectButton.addEventListener("click", async () => {
         await renderProjection();
+    });
+
+    exportObjButton.addEventListener("click", async () => {
+        if (!selectedFile) {
+            uploadStatus.textContent = "Primero selecciona una imagen.";
+            return;
+        }
+
+        const detectorMode = detectorModeSelect.value;
+        const prnetOutputMode = prnetOutputModeSelect.value;
+
+        uploadStatus.textContent =
+            `Exportando OBJ con ${detectorMode.toUpperCase()} (${prnetOutputMode})...`;
+
+        try {
+            const result = await exportObjFile(
+                selectedFile,
+                detectorMode,
+                prnetOutputMode
+            );
+
+            const downloadUrl = URL.createObjectURL(result.blob);
+
+            const link = document.createElement("a");
+            link.href = downloadUrl;
+            link.download = result.filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            URL.revokeObjectURL(downloadUrl);
+
+            uploadStatus.textContent = `OBJ exportado: ${result.filename}`;
+
+            backendResponse.textContent = JSON.stringify(
+                {
+                    detector_mode: detectorMode,
+                    prnet_output_mode: prnetOutputMode,
+                    filename: result.filename,
+                    message: "Archivo OBJ exportado correctamente"
+                },
+                null,
+                2
+            );
+        } catch (error) {
+            uploadStatus.textContent = "Error al exportar OBJ.";
+            backendResponse.textContent = error.message;
+        }
     });
 
     saveButton.addEventListener("click", async () => {

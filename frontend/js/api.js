@@ -138,3 +138,41 @@ async function loadSavedResult(filename) {
 
     return result;
 }
+
+async function exportObjFile(
+    file,
+    detectorMode = "mediapipe",
+    prnetOutputMode = "landmarks"
+) {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("detector_mode", detectorMode);
+    formData.append("prnet_output_mode", prnetOutputMode);
+
+    const response = await fetch(`${API_BASE_URL}/face/export-obj`, {
+        method: "POST",
+        body: formData
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Error exportando OBJ");
+    }
+
+    const blob = await response.blob();
+    const contentDisposition = response.headers.get("Content-Disposition");
+
+    let filename = "face_model.obj";
+
+    if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (match && match[1]) {
+            filename = match[1];
+        }
+    }
+
+    return {
+        blob,
+        filename
+    };
+}
