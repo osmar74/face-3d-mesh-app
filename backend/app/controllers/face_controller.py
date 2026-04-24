@@ -1,6 +1,8 @@
 from fastapi import Form
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 
+from backend.app.services.obj_export_service import ObjExportService
 from backend.app.config import settings
 from backend.app.models.image_model import ImageInfoResponse
 from backend.app.models.landmark_model import FaceLandmarksResponse
@@ -265,3 +267,51 @@ async def project_mesh(
         distance=distance,
         message="Proyección 3D generada correctamente"
     )
+
+@router.post("/export-obj")
+async def export_obj(
+    file: UploadFile = File(...),
+    detector_mode: DetectorMode = Form(DetectorMode.MEDIAPIPE),
+    prnet_output_mode: PRNetOutputMode = Form(PRNetOutputMode.LANDMARKS),
+) -> FileResponse:
+    image_service = ImageInputService()
+    mesh_builder = MeshBuilder()
+    export_service = ObjExportService()
+
+    try:
+        image, _ = await image_service.read_image(file)
+
+        detector = DetectorFactory.create(
+            detector_mode,
+            prnet_output_mode=prnet_output_mode
+        )
+
+        landmarks = detector.detect(image)
+
+        if not landmarks:
+            raise HTTPException(
+                status_code=400,
+                detail="No se detectaron puntos faciales para exportar OBJ"
+            )
+
+        vertices, triangles = mesh_builder.build_3d_mesh(landmarks)
+
+        obj_path = export_service.export(
+            vertices=vertices,
+            triangles=triangles,
+            filename_prefix=f"face_model_{detector_mode.value}"
+        )
+
+        return FileResponse(
+            path=obj_path,
+            filename=obj_path.split("\\")[-1],
+            media_type="text/plain"
+        )
+
+    except HTTPException:
+        raise
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error exportando OBJ: {str(error)}"
+        ) from error

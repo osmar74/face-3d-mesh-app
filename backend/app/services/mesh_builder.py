@@ -5,6 +5,7 @@ import numpy as np
 from scipy.spatial import Delaunay
 
 from backend.app.models.landmark_model import FaceLandmark
+from backend.app.models.mesh_model import Triangle, Vertex3D
 
 
 class MeshBuilder:
@@ -85,3 +86,30 @@ class MeshBuilder:
             ((centroid_y - center_y) ** 2) / (radius_y ** 2)
         )
         return value <= 1.0
+    
+    def build_3d_mesh(self, landmarks: List[FaceLandmark]):
+        points_2d, raw_triangles = self.build(landmarks)
+
+        vertices = []
+        triangles = []
+
+        for point in landmarks:
+            vertices.append(
+                Vertex3D(
+                    index=point.index,
+                    x=float(point.x),
+                    y=float(point.y),
+                    z=float(point.z),
+                )
+            )
+
+        for triangle in raw_triangles:
+            triangles.append(
+                Triangle(
+                    a=int(triangle[0]),
+                    b=int(triangle[1]),
+                    c=int(triangle[2]),
+                )
+            )
+
+        return vertices, triangles
